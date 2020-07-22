@@ -1,0 +1,16 @@
+name:                linalg
+version:             0.1.0.0
+github:              "conal/linalg"
+
+description:         Please see the README on GitHub at <https://github.com/conal/linalg>
+
+ghc-options:
+  -Wall
+
+library:
+  dependencies:
+    - base
+  other-modules: []
+  source-dirs: src
+  exposed-modules:
+    - LinAlg

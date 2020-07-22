@@ -1,0 +1,3 @@
+flags: {}
+
+resolver: lts-16.5 # ghc-8.8.3
