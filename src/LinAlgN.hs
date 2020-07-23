@@ -1,18 +1,14 @@
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE NoStarIsType #-}  -- Optional
-
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
+-- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
 -- | Linear algebra after Fortran
 
 module LinAlgN where
 
 import Data.Kind
-import Control.Category
 
 import Data.Distributive
-import Data.Functor.Rep
+-- import Data.Functor.Rep
 
 data L :: Type -> Type -> Type where
   Scale :: Num a => a -> L a a  -- TODO: Semiring instead of Num

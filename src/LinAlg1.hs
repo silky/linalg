@@ -1,6 +1,3 @@
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE NoStarIsType #-}  -- Optional
-
 {-# OPTIONS_GHC -Wall #-}
 -- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
