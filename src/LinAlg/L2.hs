@@ -3,7 +3,7 @@
 
 -- | Linear algebra after Fortran
 
-module LinAlgN where
+module LinAlg.L2 where
 
 import Data.Kind
 

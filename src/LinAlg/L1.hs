@@ -2,13 +2,17 @@
 
 -- | Linear algebra after Fortran
 
-module LinAlg1 where
+module LinAlg.L1 where
 
 import qualified Prelude as P
 import Prelude hiding ((+))
 import Data.Kind
 
-import Misc
+infixl 7 :*
+infixl 6 :+
+
+type (:*)  = (,)
+type (:+)  = Either
 
 class Additive u where
   infixl 6 +
