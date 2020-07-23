@@ -1,49 +1,41 @@
 {-# OPTIONS_GHC -Wall #-}
--- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
 -- | Linear algebra after Fortran
 
 module LinAlg.L2 where
 
-import Data.Kind
-
+import GHC.Generics (Par1(..), (:.:)(..))
 import Data.Distributive
 -- import Data.Functor.Rep
 
-data L :: Type -> Type -> Type where
-  Scale :: Num a => a -> L a a  -- TODO: Semiring instead of Num
-  Fork :: Functor g => g (L u v) -> L u (g v)
-  Join :: Functor f => f (L u v) -> L (f u) v
+data L :: (* -> *) -> (* -> *) -> (* -> *) where
+  ScaleL :: s -> L Par1 Par1 s  -- TODO: Semiring instead of Num
+  ForkL :: Functor h => h (L f g s) -> L f (h :.: g) s
+  JoinL :: Functor h => h (L f g s) -> L (h :.: f) g s
 
--- For linear functions
-forkF :: Functor g => g (u -> v) -> (u -> g v)
-forkF hs u = fmap ($ u) hs
+unforkL :: Distributive h => L f (h :.: g) s -> h (L f g s)
+unforkL (ForkL ms) = ms
+unforkL (JoinL ms) = fmap JoinL (distribute (fmap unforkL ms))
 
--- -- Denotation
--- mu :: L u v -> (u -> v)
--- mu (Scale a) = (a *)
--- mu (Fork
-
-forkL :: Functor g => g (L u v) -> L u (g v)
-forkL = Fork
-
-joinL :: Functor f => f (L u v) -> L (f u) v
-joinL = Join
-
-unforkL :: Distributive g => L u (g v) -> g (L u v)
-unforkL (Scale _) = error "oops"  -- TODO: eliminate this partiality
-unforkL (Fork ms) = ms
-unforkL (Join ms) = fmap joinL (distribute (fmap unforkL ms))
-
--- Types:
+-- Types for Join clause:
 -- 
---                                  ms   :: f (L u (g v))
---                     fmap unforkL ms   :: f (g (L u v))
---            distrib (fmap unforkL ms)  :: g (f (L u v))
--- fmap join (distrib (fmap unforkL ms)) :: g (L (f u) v)
+-- Join ms :: L (k :.: f) (h :.: g) s
+-- 
+--                                  ms :: k (L f (h :.: g) s)
+--                     fmap unforkL ms   :: k (h (L f g s))
+--            distrib (fmap unforkL ms)  :: h (k (L f g s))
+-- fmap join (distrib (fmap unforkL ms)) :: h (L (k :.: f) g s)
 
-unjoinL :: Distributive f => L (f u) v -> f (L u v)
-unjoinL (Scale _) = error "oops"  -- TODO: eliminate this partiality
-unjoinL (Join ms) = ms
-unjoinL (Fork ms) = fmap forkL (distribute (fmap unjoinL ms))
+unjoinL :: Distributive h => L (h :.: f) g s -> h (L f g s)
+unjoinL (JoinL ms) = ms
+unjoinL (ForkL ms) = fmap ForkL (distribute (fmap unjoinL ms))
 
+pattern Fork :: Distributive h => h (L f g s) -> L f (h :.: g) s
+pattern Fork ms <- (unforkL -> ms)
+ where Fork = ForkL
+{-# complete Fork #-}
+
+pattern Join :: Distributive h => h (L f g s) -> L (h :.: f) g s
+pattern Join ms <- (unjoinL -> ms)
+ where Join = JoinL
+{-# complete Join #-}
