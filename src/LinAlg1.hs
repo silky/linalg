@@ -89,11 +89,11 @@ instance Additive2 u v => Additive (L u v) where
 --         (Scale _) (JoinL _ _)
 
 comp :: Additive2 u w => L v w -> L u v -> L u w
-Scale a `comp` Scale b = Scale (a * b)                -- Scale denotation;
+Scale a `comp` Scale b = Scale (a * b)                -- Scale denotation
 JoinL h k `comp` Fork f g = h `comp` f + k `comp` g   -- biproduct law
 ForkL h k `comp` g = ForkL (h `comp` g) (k `comp` g)  -- categorical product law
 h `comp` JoinL f g = JoinL (h `comp` f) (h `comp` g)  -- categorical coproduct law
-_ `comp` _ = undefined
+_ `comp` _ = undefined  -- see below
 
 -- Pattern match(es) are non-exhaustive
 -- In an equation for ‘comp’:
