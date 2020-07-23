@@ -4,12 +4,42 @@ github:              "conal/linalg"
 
 description:         Please see the README on GitHub at <https://github.com/conal/linalg>
 
+default-extensions:
+  # - AllowAmbiguousTypes
+  # - CPP
+  # - ConstraintKinds
+  # - DefaultSignatures
+  # - DeriveFoldable
+  # - DeriveFunctor
+  # - FlexibleContexts
+  # - FlexibleInstances
+  # - FunctionalDependencies
+  - GADTs
+  # - GeneralizedNewtypeDeriving
+  # - LambdaCase
+  # - MultiParamTypeClasses
+  # - OverloadedStrings  # for Poly, since dante doesn't pick up
+  # - PatternSynonyms
+  # - QuantifiedConstraints
+  # - RankNTypes
+  # - StandaloneDeriving
+  # - TupleSections
+  # - TypeApplications
+  # - TypeFamilies
+  # - TypeOperators
+  # - UndecidableInstances
+  # - ViewPatterns
+  # - ScopedTypeVariables
+  - KindSignatures
+
 ghc-options:
   -Wall
 
 library:
   dependencies:
     - base
+    - distributive
+    - adjunctions
   other-modules: []
   source-dirs: src
   exposed-modules:
