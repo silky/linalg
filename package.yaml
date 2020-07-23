@@ -43,4 +43,4 @@ library:
   other-modules: []
   source-dirs: src
   exposed-modules:
-    - LinAlg
+    - LinAlg1

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 015043d1d63b63106baf131f4b7d280f67cd9d8888c8a946fce540f7a264e1f0
+-- hash: 21a6c45935ad570baaccc2c4669427287800c2b75d0035198468ae69afae244e
 
 name:           linalg
 version:        0.1.0.0
@@ -21,7 +21,7 @@ source-repository head
 
 library
   exposed-modules:
-      LinAlg
+      LinAlg1
   hs-source-dirs:
       src
   default-extensions: GADTs KindSignatures

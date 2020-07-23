@@ -6,7 +6,7 @@
 
 -- | Linear algebra after Fortran
 
-module LinAlg where
+module LinAlg1 where
 
 import Data.Kind
 import Control.Category
