@@ -19,6 +19,14 @@ data L :: Type -> Type -> Type where
   Fork :: (L u v :* L u v') -> L u (v :* v')
   Join :: (L u v :* L u' v) -> L (u :* u') v
 
+pattern ForkL :: L u v -> L u v' -> L u (v :* v')
+pattern ForkL f g <- (unforkL -> (f,g))
+ where ForkL = curry Fork
+
+pattern JoinL :: L u v -> L u' v -> L (u :* u') v
+pattern JoinL f g <- (unjoinL -> (f,g))
+ where JoinL = curry Join
+
 -- Note: Num in Join is for the semantics, not the implementation.
 -- 
 -- Note: the uncurried vocabulary more naturally extends to n-ary/naperian and
