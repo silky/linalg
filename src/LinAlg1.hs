@@ -16,29 +16,28 @@ type (:+)  = Either
 
 data L :: Type -> Type -> Type where
   Scale :: Num a => a -> L a a  -- TODO: Semiring instead of Num
-  Fork :: (L u v :* L u v') -> L u (v :* v')
-  Join :: (L u v :* L u' v) -> L (u :* u') v
+  ForkL :: L u v -> L u v' -> L u (v :* v')
+  JoinL :: L u v -> L u' v -> L (u :* u') v
 
-pattern ForkL :: L u v -> L u v' -> L u (v :* v')
-pattern ForkL f g <- (unforkL -> (f,g))
- where ForkL = curry Fork
+pattern Fork :: L u v -> L u v' -> L u (v :* v')
+pattern Fork f g <- (unforkL -> (f,g))
+ where Fork = ForkL
 
-pattern JoinL :: L u v -> L u' v -> L (u :* u') v
-pattern JoinL f g <- (unjoinL -> (f,g))
- where JoinL = curry Join
+pattern Join :: L u v -> L u' v -> L (u :* u') v
+pattern Join f g <- (unjoinL -> (f,g))
+ where Join = JoinL
+
+#if 0
 
 -- Note: Num in Join is for the semantics, not the implementation.
--- 
--- Note: the uncurried vocabulary more naturally extends to n-ary/naperian and
--- allows forkL and joinL to be isomorphisms. See below for inverses.
 
 -- For linear functions.
-forkF :: (u -> v) :* (u -> v') -> (u -> v :* v')
-forkF (f, g) u = (f u, g u)
+forkF :: (u -> v) -> (u -> v') -> (u -> v :* v')
+forkF f g u = (f u, g u)
 
 -- For linear functions. TODO: generalize from Num
-joinF :: Num v => (u -> v) :* (u' -> v) -> (u :* u' -> v)
-joinF (f,g) (u,u') = f u + g u'
+joinF :: Num v => (u -> v) -> (u' -> v) -> (u :* u' -> v)
+joinF f g (u,u') = f u + g u'
 
 exlF :: u :* v -> u
 exlF = fst
@@ -58,22 +57,24 @@ inrF v = (0,v)
 unjoinF :: (Num u, Num u') => (u :* u' -> v) -> (u -> v) :* (u' -> v)
 unjoinF h = (h . inlF, h . inrF)
 
--- -- Denotation
--- mu :: L u v -> (u -> v)
--- mu (Scale a) = (a *)
--- mu (Fork (f,g)) = forkF (mu f,mu g)
--- mu (Join (f,g)) = joinF (mu f,mu g)  -- needs a Num
+-- Denotation
+mu :: L u v -> (u -> v)
+mu (Scale a) = (a *)
+mu (ForkL f g) = forkF (mu f,mu g)
+mu (JoinL f g) = joinF (mu f,mu g)  -- needs a Num
 
-forkL :: L u v :* L u v' -> L u (v :* v')
-forkL = Fork
+#endif
 
-joinL :: L u v :* L u' v -> L (u :* u') v
-joinL = Join
+-- forkL :: L u v -> L u v' -> L u (v :* v')
+-- forkL = ForkL
+
+-- joinL :: L u v -> L u' v -> L (u :* u') v
+-- joinL = JoinL
 
 unforkL :: L u (v :* v') -> L u v :* L u v'
 unforkL (Scale _) = error "oops"  -- TODO: eliminate this partiality
-unforkL (Fork (f,g)) = (f,g)
-unforkL (Join (f,g)) = (joinL (p,r), joinL (q,s))
+unforkL (ForkL f g) = (f,g)
+unforkL (JoinL f g) = (JoinL p r, JoinL q s)
  where
   (p,q) = unforkL f
   (r,s) = unforkL g
@@ -93,8 +94,8 @@ unforkL (Join (f,g)) = (joinL (p,r), joinL (q,s))
 
 unjoinL :: L (u :* u') v -> L u v :* L u' v
 unjoinL (Scale _) = error "oops"  -- TODO: eliminate this partiality
-unjoinL (Join (f,g)) = (f,g)
-unjoinL (Fork (f,g)) = (forkL (p,r), forkL (q,s))
+unjoinL (JoinL f g) = (f,g)
+unjoinL (ForkL f g) = (ForkL p r, ForkL q s)
  where
   (p,q) = unjoinL f
   (r,s) = unjoinL g
