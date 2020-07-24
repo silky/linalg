@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wall #-}
-
 -- | Linear algebra after Fortran
 
 module LinAlg.L2 where
@@ -12,8 +10,6 @@ import Data.Distributive
 import Data.Functor.Rep
 
 type V f = (Representable f, Foldable f)
-type V2 f g = (V f, V g)
-type V3 f g h = (V2 f g, V h)
 
 class Additive a where
   infixl 6 +
@@ -37,27 +33,6 @@ data L :: (* -> *) -> (* -> *) -> (* -> *) where
   JoinL :: V h => h (L f g s) -> L (h :.: f) g s
   ForkL :: V h => h (L f g s) -> L f (h :.: g) s
 
-#if 0
-
-instance Additive s => Additive (L Par1 Par1 s) where
-  zero = Scale zero
-  Scale s + Scale s' = Scale (s + s') -- distributivity
-
-instance (V h, Additive s, Additive (L f g s)) => Additive (L (h :.: f) g s) where
-  zero = Join (pureRep zero)
-  Join ms + Join ms' = JoinL (liftR2 (+) ms ms')
-  -- ForkL ms + Fork ms' = ForkL (liftR2 (+) ms ms')
-
-instance (V h, Additive s, Additive (L f g s)) => Additive (L f (h :.: g) s) where
-  zero = Fork (tabulate (const zero))
-  Fork ms + Fork ms' = ForkL (liftR2 (+) ms ms')
-  -- JoinL ms + Join ms' = JoinL (liftR2 (+) ms ms')
-
--- Why doesn't GHC object to the overlap between the previous two instances?
--- Why *does* GHC object to the commented-out third clauses in each?
-
-#else
-
 instance Additive s => Additive (L f g s) where
   zero = Zero
   Zero + m = m
@@ -65,8 +40,6 @@ instance Additive s => Additive (L f g s) where
   Scale s + Scale s' = Scale (s + s') -- distributivity
   JoinL ms + Join ms' = JoinL (liftR2 (+) ms ms')
   ForkL ms + Fork ms' = ForkL (liftR2 (+) ms ms')
-
-#endif
 
 unforkL :: Representable h => L f (h :.: g) s -> h (L f g s)
 unforkL Zero = pureRep Zero
@@ -89,24 +62,21 @@ unjoinL (JoinL ms) = ms
 unjoinL (ForkL ms) = fmap ForkL (distribute (fmap unjoinL ms))
 
 pattern Fork :: V h => h (L f g s) -> L f (h :.: g) s
-pattern Fork ms <- (unforkL -> ms)
- where Fork = ForkL
+pattern Fork ms <- (unforkL -> ms) where Fork = ForkL
 {-# complete Fork #-}
 
 pattern Join :: V h => h (L f g s) -> L (h :.: f) g s
-pattern Join ms <- (unjoinL -> ms)
- where Join = JoinL
+pattern Join ms <- (unjoinL -> ms) where Join = JoinL
 {-# complete Join #-}
 
 infixr 9 .@
 (.@) :: Semiring s => L g h s -> L f g s -> L f h s
 Zero .@ _ = Zero
 _ .@ Zero = Zero
-Scale a .@ Scale b = Scale (a * b)           -- Scale denotation
-ForkL ms' .@ m = ForkL (fmap (.@ m) ms')     -- categorical product law
-m' .@ JoinL ms = JoinL (fmap (m' .@) ms)     -- categorical coproduct law
+Scale a .@ Scale b = Scale (a * b)                -- Scale denotation
+ForkL ms' .@ m = ForkL (fmap (.@ m) ms')          -- categorical product law
+m' .@ JoinL ms = JoinL (fmap (m' .@) ms)          -- categorical coproduct law
 JoinL ms' .@ Fork ms = sum (liftR2 (.@) ms' ms)   -- biproduct law
--- _ .@ _ = undefined -- TEMP
 
 #if 0
 -- ForkL clause types:

@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wall #-}
-
 -- | Linear algebra after Fortran
 
 module LinAlg.L1 where
