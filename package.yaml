@@ -11,8 +11,8 @@ default-extensions:
   # - DefaultSignatures
   # - DeriveFoldable
   # - DeriveFunctor
-  # - FlexibleContexts
-  # - FlexibleInstances
+  - FlexibleContexts
+  - FlexibleInstances
   # - FunctionalDependencies
   - GADTs
   # - GeneralizedNewtypeDeriving
@@ -31,7 +31,7 @@ default-extensions:
   - ViewPatterns
   # - ScopedTypeVariables
   - KindSignatures
-  - NoStarIsType
+  # - NoStarIsType
   - TypeSynonymInstances
 
 ghc-options:
