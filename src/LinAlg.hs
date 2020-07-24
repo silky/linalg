@@ -143,23 +143,25 @@ instance Additive s => Additive (L f g s) where
   Zero + m = m
   m + Zero = m
   Scale s + Scale s' = Scale (s + s') -- distributivity
-  (f :|# g) + (h :| k) = (f + h) :| (g + k)
+  (f :|# g) + (h :|# k) = (f + h) :| (g + k)
   (f :&# g) + (h :& k) = (f + h) :& (g + k)
   ForkL ms  + Fork ms' = Fork (ms +^ ms')
   JoinL ms  + Join ms' = Join (ms +^ ms')
 
-matrix' :: (V2 f g, V2 h k) => k (h (L f g s)) -> L (h :.: f) (k :.: g) s
-matrix' = Fork . fmap Join
+-- | Row-major "matrix" of linear maps
+rowMajor' :: (V2 f g, V2 h k) => k (h (L f g s)) -> L (h :.: f) (k :.: g) s
+rowMajor' = Fork . fmap Join
 
-matrix :: (V f, V g) => g (f s) -> L (f :.: Par1) (g :.: Par1) s
-matrix = matrix' . (fmap.fmap) Scale
+-- | Row-major "matrix" of scalars
+rowMajor :: (V f, V g) => g (f s) -> L (f :.: Par1) (g :.: Par1) s
+rowMajor = rowMajor' . (fmap.fmap) Scale
 
 diagR :: (Representable h, Eq (Rep h), Additive a) => h a -> h (h a)
 diagR as =
   tabulate (\ i -> (tabulate (\ j -> if i == j then as `index` i else zero)))
 
 idL :: (V f, Semiring s) => L (f :.: Par1) (f :.: Par1) s
-idL = matrix (diagR (pureRep one))
+idL = rowMajor (diagR (pureRep one))
 
 infixr 9 .@
 (.@) :: Semiring s => L g h s -> L f g s -> L f h s
