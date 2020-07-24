@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-} -- see below
+
 -- | Linear algebra after Fortran
 
 module LinAlg where
@@ -19,8 +21,7 @@ type (:*)  = (,)
 unzip :: Functor f => f (a :* b) -> f a :* f b
 unzip ps = (fst <$> ps, snd <$> ps)
 
-
-type V f = (Representable f, Foldable f)
+type V f = (Representable f, Foldable f, Eq (Rep f))
 type V2 f g = (V f, V g)
 type V3 f g h = (V2 f g, V h)
 
@@ -36,6 +37,11 @@ class Additive a => Semiring a where
 
 sum :: (Foldable f, Additive a) => f a -> a
 sum = foldr (+) zero
+
+-- | Vector addition
+infixl 6 +^
+(+^) :: (Representable f, Additive s) => f s -> f s -> f s
+(+^) = liftR2 (+)
 
 instance Additive Double where { zero = 0; (+) = (P.+) }
 instance Semiring Double where { one  = 1; (*) = (P.*) }
@@ -137,31 +143,40 @@ instance Additive s => Additive (L f g s) where
   Zero + m = m
   m + Zero = m
   Scale s + Scale s' = Scale (s + s') -- distributivity
-  (f :|# g) + (h :| k) = (f + h) :|# (g + k)
-  (f :&# g) + (h :& k) = (f + h) :&# (g + k)
-  ForkL ms + Fork ms' = ForkL (liftR2 (+) ms ms')
-  JoinL ms + Join ms' = JoinL (liftR2 (+) ms ms')
-  ForkL ms + Fork ms' = ForkL (liftR2 (+) ms ms')
+  (f :|# g) + (h :| k) = (f + h) :| (g + k)
+  (f :&# g) + (h :& k) = (f + h) :& (g + k)
+  ForkL ms  + Fork ms' = Fork (ms +^ ms')
+  JoinL ms  + Join ms' = Join (ms +^ ms')
+
+matrix' :: (V2 f g, V2 h k) => k (h (L f g s)) -> L (h :.: f) (k :.: g) s
+matrix' = Fork . fmap Join
 
 matrix :: (V f, V g) => g (f s) -> L (f :.: Par1) (g :.: Par1) s
-matrix = Fork . fmap (Join . fmap Scale)
+matrix = matrix' . (fmap.fmap) Scale
+
+diagR :: (Representable h, Eq (Rep h), Additive a) => h a -> h (h a)
+diagR as =
+  tabulate (\ i -> (tabulate (\ j -> if i == j then as `index` i else zero)))
 
 idL :: (V f, Semiring s) => L (f :.: Par1) (f :.: Par1) s
-idL = matrix (pureRep (pureRep one))
+idL = matrix (diagR (pureRep one))
 
 infixr 9 .@
 (.@) :: Semiring s => L g h s -> L f g s -> L f h s
 Zero      .@ _         = Zero                      -- Zero denotation
 _         .@ Zero      = Zero                      -- linearity
 Scale a   .@ Scale b   = Scale (a * b)             -- Scale denotation
-(p :&# q) .@ m         = (p .@ m) :&# (q .@ m)     -- categorical product law
-m         .@ (p :|# q) = (m .@ p) :|# (m .@ q)     -- categorical coproduct law
+(p :&# q) .@ m         = (p .@ m) :&# (q .@ m)     -- binary product law
+m         .@ (p :|# q) = (m .@ p) :|# (m .@ q)     -- binary coproduct law
 (r :|# s) .@ (p :&# q) = (r .@ p) + (s .@ q)       -- biproduct law
-ForkL ms' .@ m         = ForkL (fmap (.@ m) ms')   -- categorical product law
-m'        .@ JoinL ms  = JoinL (fmap (m' .@) ms)   -- categorical coproduct law
+ForkL ms' .@ m         = ForkL (fmap (.@ m) ms')   -- n-ary product law
+m'        .@ JoinL ms  = JoinL (fmap (m' .@) ms)   -- n-ary coproduct law
 JoinL ms' .@ ForkL ms  = sum (liftR2 (.@) ms' ms)  -- biproduct law
 
 instance (V f, Semiring s) => Semiring (L (f :.: Par1) (f :.: Par1) s) where
   one = idL
   (*) = (.@)
+
+-- Illegal nested constraint ‘Eq (Rep f)’
+-- (Use UndecidableInstances to permit this)
 
