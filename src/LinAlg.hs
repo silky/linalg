@@ -33,14 +33,6 @@ data L :: (* -> *) -> (* -> *) -> (* -> *) where
   JoinL :: V h => h (L f g s) -> L (h :.: f) g s
   ForkL :: V h => h (L f g s) -> L f (h :.: g) s
 
-instance Additive s => Additive (L f g s) where
-  zero = Zero
-  Zero + m = m
-  m + Zero = m
-  Scale s + Scale s' = Scale (s + s') -- distributivity
-  JoinL ms + Join ms' = JoinL (liftR2 (+) ms ms')
-  ForkL ms + Fork ms' = ForkL (liftR2 (+) ms ms')
-
 unforkL :: Representable h => L f (h :.: g) s -> h (L f g s)
 unforkL Zero       = pureRep Zero
 unforkL (ForkL ms) = ms
@@ -68,6 +60,14 @@ pattern Fork ms <- (unforkL -> ms) where Fork = ForkL
 pattern Join :: V h => h (L f g s) -> L (h :.: f) g s
 pattern Join ms <- (unjoinL -> ms) where Join = JoinL
 {-# complete Join #-}
+
+instance Additive s => Additive (L f g s) where
+  zero = Zero
+  Zero + m = m
+  m + Zero = m
+  Scale s + Scale s' = Scale (s + s') -- distributivity
+  JoinL ms + Join ms' = JoinL (liftR2 (+) ms ms')
+  ForkL ms + Fork ms' = ForkL (liftR2 (+) ms ms')
 
 matrix :: (V f, V g) => g (f s) -> L (f :.: Par1) (g :.: Par1) s
 matrix = Fork . fmap (Join . fmap Scale)
