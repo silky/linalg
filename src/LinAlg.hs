@@ -69,6 +69,12 @@ pattern Join :: V h => h (L f g s) -> L (h :.: f) g s
 pattern Join ms <- (unjoinL -> ms) where Join = JoinL
 {-# complete Join #-}
 
+matrix :: (V f, V g) => g (f s) -> L (f :.: Par1) (g :.: Par1) s
+matrix = Fork . fmap (Join . fmap Scale)
+
+idL :: (V f, Semiring s) => L (f :.: Par1) (f :.: Par1) s
+idL = matrix (pureRep (pureRep one))
+
 infixr 9 .@
 (.@) :: Semiring s => L g h s -> L f g s -> L f h s
 Zero      .@ _        = Zero                       -- Zero denotation
@@ -77,3 +83,8 @@ Scale a   .@ Scale b  = Scale (a * b)              -- Scale denotation
 ForkL ms' .@ m        = ForkL (fmap (.@ m) ms')    -- categorical product law
 m'        .@ JoinL ms = JoinL (fmap (m' .@) ms)    -- categorical coproduct law
 JoinL ms' .@ Fork ms  = sum (liftR2 (.@) ms' ms)   -- biproduct law
+
+instance (V f, Semiring s) => Semiring (L (f :.: Par1) (f :.: Par1) s) where
+  one = idL
+  (*) = (.@)
+
