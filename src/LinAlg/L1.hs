@@ -34,7 +34,7 @@ data L :: Type -> Type -> Type where
   JoinL :: Additive3 u u' v => L u v -> L u' v -> L (u :* u') v
 
 unforkL :: Additive2 v v' => L u (v :* v') -> L u v :* L u v'
--- unforkL (Scale _) = error "oops"  -- TODO: eliminate this partiality
+unforkL (Scale _) = error "oops"  -- TODO: eliminate this partiality
 unforkL (ForkL f g) = (f,g)
 unforkL (JoinL f g) = (JoinL p r, JoinL q s)
  where
@@ -55,7 +55,7 @@ unforkL (JoinL f g) = (JoinL p r, JoinL q s)
 -- s :: L u' v'
 
 unjoinL :: Additive2 u u' => L (u :* u') v -> L u v :* L u' v
--- unjoinL (Scale _) = error "oops"  -- TODO: eliminate this partiality
+unjoinL (Scale _) = error "oops"  -- TODO: eliminate this partiality
 unjoinL (JoinL f g) = (f,g)
 unjoinL (ForkL f g) = (ForkL p r, ForkL q s)
  where
@@ -86,12 +86,13 @@ instance Additive2 u v => Additive (L u v) where
 --         (Scale _) (ForkL _ _)
 --         (Scale _) (JoinL _ _)
 
-comp :: Additive2 u w => L v w -> L u v -> L u w
-Scale a `comp` Scale b = Scale (a * b)                -- Scale denotation
-JoinL h k `comp` Fork f g = h `comp` f + k `comp` g   -- biproduct law
-ForkL h k `comp` g = ForkL (h `comp` g) (k `comp` g)  -- categorical product law
-h `comp` JoinL f g = JoinL (h `comp` f) (h `comp` g)  -- categorical coproduct law
--- _ `comp` _ = undefined  -- see below
+infixr 9 .@
+(.@) :: Additive2 u w => L v w -> L u v -> L u w
+Scale a .@ Scale b = Scale (a * b)                -- Scale denotation
+JoinL h k .@ Fork f g = h .@ f + k .@ g   -- biproduct law
+ForkL h k .@ g = ForkL (h .@ g) (k .@ g)  -- categorical product law
+h .@ JoinL f g = JoinL (h .@ f) (h .@ g)  -- categorical coproduct law
+_ .@ _ = undefined  -- see below
 
 -- Pattern match(es) are non-exhaustive
 -- In an equation for ‘comp’:
