@@ -1,6 +1,6 @@
 -- | Linear algebra after Fortran
 
-module LinAlg.L2 where
+module LinAlg where
 
 import qualified Prelude as P
 import Prelude hiding ((+),sum,(*))
