@@ -32,6 +32,7 @@ instance Additive Double where { zero = 0; (+) = (P.+) }
 instance Semiring Double where { one  = 1; (*) = (P.*) }
 
 data L :: (* -> *) -> (* -> *) -> (* -> *) where
+  Zero :: L f g s
   Scale :: s -> L Par1 Par1 s
   JoinL :: V h => h (L f g s) -> L (h :.: f) g s
   ForkL :: V h => h (L f g s) -> L f (h :.: g) s
@@ -43,7 +44,7 @@ instance Additive s => Additive (L Par1 Par1 s) where
   Scale s + Scale s' = Scale (s + s') -- distributivity
 
 instance (V h, Additive s, Additive (L f g s)) => Additive (L (h :.: f) g s) where
-  zero = Join (tabulate (const zero))
+  zero = Join (pureRep zero)
   Join ms + Join ms' = JoinL (liftR2 (+) ms ms')
   -- ForkL ms + Fork ms' = ForkL (liftR2 (+) ms ms')
 
@@ -58,14 +59,17 @@ instance (V h, Additive s, Additive (L f g s)) => Additive (L f (h :.: g) s) whe
 #else
 
 instance Additive s => Additive (L f g s) where
-  zero = undefined -- ???
+  zero = Zero
+  Zero + m = m
+  m + Zero = m
   Scale s + Scale s' = Scale (s + s') -- distributivity
   JoinL ms + Join ms' = JoinL (liftR2 (+) ms ms')
   ForkL ms + Fork ms' = ForkL (liftR2 (+) ms ms')
 
 #endif
 
-unforkL :: Distributive h => L f (h :.: g) s -> h (L f g s)
+unforkL :: Representable h => L f (h :.: g) s -> h (L f g s)
+unforkL Zero = pureRep Zero
 unforkL (ForkL ms) = ms
 unforkL (JoinL ms) = fmap JoinL (distribute (fmap unforkL ms))
 
@@ -79,7 +83,8 @@ unforkL (JoinL ms) = fmap JoinL (distribute (fmap unforkL ms))
 fmap JoinL (distrib (fmap unforkL ms)) :: h (L (k :.: f) g s)
 #endif
 
-unjoinL :: Distributive h => L (h :.: f) g s -> h (L f g s)
+unjoinL :: Representable h => L (h :.: f) g s -> h (L f g s)
+unjoinL Zero = pureRep Zero
 unjoinL (JoinL ms) = ms
 unjoinL (ForkL ms) = fmap ForkL (distribute (fmap unjoinL ms))
 
@@ -95,6 +100,8 @@ pattern Join ms <- (unjoinL -> ms)
 
 infixr 9 .@
 (.@) :: Semiring s => L g h s -> L f g s -> L f h s
+Zero .@ _ = Zero
+_ .@ Zero = Zero
 Scale a .@ Scale b = Scale (a * b)           -- Scale denotation
 ForkL ms' .@ m = ForkL (fmap (.@ m) ms')     -- categorical product law
 m' .@ JoinL ms = JoinL (fmap (m' .@) ms)     -- categorical coproduct law
