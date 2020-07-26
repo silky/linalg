@@ -168,9 +168,9 @@ rowMajor' = Fork . fmap Join
 rowMajor :: (V f, V g) => g (f s) -> L (f :.: Par1) (g :.: Par1) s
 rowMajor = rowMajor' . (fmap.fmap) Scale
 
-diagR :: (Representable h, Eq (Rep h), Additive a) => h a -> h (h a)
-diagR as =
-  tabulate (\ i -> (tabulate (\ j -> if i == j then as `index` i else zero)))
+diagR :: (Representable h, Eq (Rep h)) => a -> h a -> h (h a)
+diagR dflt as =
+  tabulate (\ i -> tabulate (\ j -> if i == j then as `index` i else dflt))
 
 idL :: (HasScaleV a, Semiring s) => L a a s
 idL = scaleV one
@@ -210,6 +210,8 @@ exl = idL :| zero
 exr :: (HasScaleV b, Semiring s) => L (a :*: b) b s 
 exr = zero :| idL
 
+-- Note that idL == inl :| inr == exl :& exr.
+
 -- N-ary injections
 ins :: (HasScaleV2 a c, Semiring s) => c (L a (c :.: a) s)
 ins = unjoinL idL
@@ -218,26 +220,24 @@ ins = unjoinL idL
 exs :: (HasScaleV2 a c, Semiring s) => c (L (c :.: a) a s)
 exs = unforkL idL
 
+-- Note that idL == joinL ins == forkL exs
+
 -- Binary biproduct bifunctor
 (***) :: L a c s -> L b d s -> L (a :*: b) (c :*: d) s
 f *** g = (f :|# Zero) :&# (Zero :|# g)
 
 -- N-ary biproduct bifunctor
-cross :: (V a, HasScaleV2 b c, Semiring s) => c (L a b s) -> L (c :.: a) (c :.: b) s
-cross fs = JoinL (ins .^ fs)
+cross :: (V c, Additive s) => c (L a b s) -> L (c :.: a) (c :.: b) s
+cross = JoinL . fmap ForkL . diagR zero
 
-#if 0
--- Equivalently,
+{- Note that
 
-f *** g = (f :&# Zero) :|# (Zero :&# g)
+f *** g == (f :|# Zero) :&# (Zero :|# g)
+        == (f :&# Zero) :|# (Zero :&# g)
+        == (f .@ exl) :&# (g .@ exr)
+        == (inl .@ f) :|# (inr .@ g)
 
-(***) :: (HasScaleV2 a b, Semiring s) => L a c s -> L b d s -> L (a :*: b) (c :*: d) s
-f *** g = (f .@ exl) :&# (g .@ exr)
+cross fs == JoinL (ins .^ fs)
+         == ForkL (fs .^ exs)
 
-(***) :: (HasScaleV2 c d, Semiring s) => L a c s -> L b d s -> L (a :*: b) (c :*: d) s
-f *** g = (inl .@ f) :|# (inr .@ g)
-
--- Equivalently,
-cross :: (V a, HasScaleV2 a c, Semiring s) => c (L a b s) -> L (c :.: a) (c :.: b) s
-cross fs = ForkL (fs .^ exs)
-#endif
+-}
