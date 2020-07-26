@@ -1,5 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-} -- see below
-
 -- | Linear algebra after Fortran
 
 module LinAlg where
@@ -8,7 +6,7 @@ import qualified Prelude as P
 import Prelude hiding ((+),sum,(*),unzip)
 
 import GHC.Generics (Par1(..), (:*:)(..), (:.:)(..))
-import Control.Arrow ((***))
+import qualified Control.Arrow as A
 import Data.Distributive
 import Data.Functor.Rep
 
@@ -59,11 +57,25 @@ data L :: (* -> *) -> (* -> *) -> (* -> *) where
   JoinL :: V h => h (L f g s) -> L (h :.: f) g s
   ForkL :: V h => h (L f g s) -> L f (h :.: g) s
 
+-- Scalable vectors
+class V a => HasScaleV a where
+  scaleV :: Semiring s => s -> L a a s
+
+type HasScaleV2 a b = (HasScaleV a, HasScaleV b)
+
+instance HasScaleV Par1 where scaleV = Scale
+
+instance (HasScaleV a, HasScaleV b) => HasScaleV (a :*: b) where
+  scaleV s = scaleV s *** scaleV s
+
+instance (HasScaleV a, HasScaleV b, Representable b) => HasScaleV (b :.: a) where
+  scaleV s = cross (pureRep (scaleV s))
+
 unjoin2 :: Additive s => L (f :*: g) h s -> L f h s :* L g h s
 unjoin2 Zero = (zero,zero)
 unjoin2 (p :|# q) = (p,q)
 unjoin2 ((unjoin2 -> (p,q)) :&# (unjoin2 -> (r,s))) = (p :& r, q :& s)
-unjoin2 (ForkL ms) = (ForkL *** ForkL) (unzip (unjoin2 <$> ms))
+unjoin2 (ForkL ms) = (ForkL A.*** ForkL) (unzip (unjoin2 <$> ms))
 
 -- unjoin2 ((p :| q) :&# (r :| s)) = (p :&# r, q :#& s)
 
@@ -83,7 +95,7 @@ unfork2 :: Additive s => L f (h :*: k) s -> L f h s :* L f k s
 unfork2 Zero = (zero,zero)
 unfork2 (p :&# q) = (p,q)
 unfork2 ((unfork2 -> (p,q)) :|# (unfork2 -> (r,s))) = (p :|# r, q :|# s)
-unfork2 (JoinL ms) = (JoinL *** JoinL) (unzip (unfork2 <$> ms))
+unfork2 (JoinL ms) = (JoinL A.*** JoinL) (unzip (unfork2 <$> ms))
 
 -- unfork2 ((p :& q) :|# (r :& s)) = (p :|# r, q :|# s)
 
@@ -156,12 +168,12 @@ rowMajor' = Fork . fmap Join
 rowMajor :: (V f, V g) => g (f s) -> L (f :.: Par1) (g :.: Par1) s
 rowMajor = rowMajor' . (fmap.fmap) Scale
 
-diagR :: (Representable h, Eq (Rep h), Additive a) => h a -> h (h a)
-diagR as =
-  tabulate (\ i -> (tabulate (\ j -> if i == j then as `index` i else zero)))
+diagRep :: (Representable h, Eq (Rep h)) => a -> h a -> h (h a)
+diagRep dflt as =
+  tabulate (\ i -> tabulate (\ j -> if i == j then as `index` i else dflt))
 
-idL :: (V f, Semiring s) => L (f :.: Par1) (f :.: Par1) s
-idL = rowMajor (diagR (pureRep one))
+idL :: (HasScaleV a, Semiring s) => L a a s
+idL = scaleV one
 
 infixr 9 .@
 (.@) :: Semiring s => L g h s -> L f g s -> L f h s
@@ -173,12 +185,59 @@ m         .@ (p :|# q) = (m .@ p) :|# (m .@ q)     -- binary coproduct law
 (r :|# s) .@ (p :&# q) = (r .@ p) + (s .@ q)       -- biproduct law
 ForkL ms' .@ m         = ForkL (fmap (.@ m) ms')   -- n-ary product law
 m'        .@ JoinL ms  = JoinL (fmap (m' .@) ms)   -- n-ary coproduct law
-JoinL ms' .@ ForkL ms  = sum (liftR2 (.@) ms' ms)  -- biproduct law
+JoinL ms' .@ ForkL ms  = sum (ms' .^ ms)           -- biproduct law
 
-instance (V f, Semiring s) => Semiring (L (f :.: Par1) (f :.: Par1) s) where
+(.^) :: (Representable p, Semiring s) => p (L g h s) -> p (L f g s) -> p (L f h s)
+(.^) = liftR2 (.@)
+
+instance (HasScaleV f, Semiring s) => Semiring (L f f s) where
   one = idL
   (*) = (.@)
 
--- Illegal nested constraint ‘Eq (Rep f)’
--- (Use UndecidableInstances to permit this)
+-- Binary injections
 
+inl :: (HasScaleV a, Semiring s) => L a (a :*: b) s 
+inl = idL :& zero
+
+inr :: (HasScaleV b, Semiring s) => L b (a :*: b) s 
+inr = zero :& idL
+
+-- Binary projections
+
+exl :: (HasScaleV a, Semiring s) => L (a :*: b) a s 
+exl = idL :| zero
+
+exr :: (HasScaleV b, Semiring s) => L (a :*: b) b s 
+exr = zero :| idL
+
+-- Note that idL == inl :| inr == exl :& exr.
+
+-- N-ary injections
+ins :: (HasScaleV2 a c, Semiring s) => c (L a (c :.: a) s)
+ins = unjoinL idL
+
+-- N-ary projections
+exs :: (HasScaleV2 a c, Semiring s) => c (L (c :.: a) a s)
+exs = unforkL idL
+
+-- Note that idL == joinL ins == forkL exs
+
+-- Binary biproduct bifunctor
+(***) :: L a c s -> L b d s -> L (a :*: b) (c :*: d) s
+f *** g = (f :|# Zero) :&# (Zero :|# g)
+
+-- N-ary biproduct bifunctor
+cross :: (V c, Additive s) => c (L a b s) -> L (c :.: a) (c :.: b) s
+cross = JoinL . fmap ForkL . diagRep zero
+
+{- Note that
+
+f *** g == (f :|# Zero) :&# (Zero :|# g)
+        == (f :&# Zero) :|# (Zero :&# g)
+        == (f .@ exl) :&# (g .@ exr)
+        == (inl .@ f) :|# (inr .@ g)
+
+cross fs == JoinL (ins .^ fs)
+         == ForkL (fs .^ exs)
+
+-}
