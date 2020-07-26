@@ -194,7 +194,7 @@ instance (HasScaleV f, Semiring s) => Semiring (L f f s) where
   one = idL
   (*) = (.@)
 
--- Injections
+-- Binary injections
 
 inl :: (HasScaleV a, Semiring s) => L a (a :*: b) s 
 inl = idL :& zero
@@ -202,7 +202,7 @@ inl = idL :& zero
 inr :: (HasScaleV b, Semiring s) => L b (a :*: b) s 
 inr = zero :& idL
 
--- Projections
+-- Binary projections
 
 exl :: (HasScaleV a, Semiring s) => L (a :*: b) a s 
 exl = idL :| zero
@@ -210,11 +210,11 @@ exl = idL :| zero
 exr :: (HasScaleV b, Semiring s) => L (a :*: b) b s 
 exr = zero :| idL
 
--- Injections
+-- N-ary injections
 ins :: (HasScaleV2 a c, Semiring s) => c (L a (c :.: a) s)
 ins = unjoinL idL
 
--- Projections
+-- N-ary projections
 exs :: (HasScaleV2 a c, Semiring s) => c (L (c :.: a) a s)
 exs = unforkL idL
 
