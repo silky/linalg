@@ -185,7 +185,7 @@ m         .@ (p :|# q) = (m .@ p) :|# (m .@ q)     -- binary coproduct law
 (r :|# s) .@ (p :&# q) = (r .@ p) + (s .@ q)       -- biproduct law
 ForkL ms' .@ m         = ForkL (fmap (.@ m) ms')   -- n-ary product law
 m'        .@ JoinL ms  = JoinL (fmap (m' .@) ms)   -- n-ary coproduct law
-JoinL ms' .@ ForkL ms  = sum (ms' .^ ms)          -- biproduct law
+JoinL ms' .@ ForkL ms  = sum (ms' .^ ms)           -- biproduct law
 
 (.^) :: (Representable p, Semiring s) => p (L g h s) -> p (L f g s) -> p (L f h s)
 (.^) = liftR2 (.@)
