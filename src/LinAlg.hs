@@ -168,8 +168,8 @@ rowMajor' = Fork . fmap Join
 rowMajor :: (V f, V g) => g (f s) -> L (f :.: Par1) (g :.: Par1) s
 rowMajor = rowMajor' . (fmap.fmap) Scale
 
-diagR :: (Representable h, Eq (Rep h)) => a -> h a -> h (h a)
-diagR dflt as =
+diagRep :: (Representable h, Eq (Rep h)) => a -> h a -> h (h a)
+diagRep dflt as =
   tabulate (\ i -> tabulate (\ j -> if i == j then as `index` i else dflt))
 
 idL :: (HasScaleV a, Semiring s) => L a a s
@@ -228,7 +228,7 @@ f *** g = (f :|# Zero) :&# (Zero :|# g)
 
 -- N-ary biproduct bifunctor
 cross :: (V c, Additive s) => c (L a b s) -> L (c :.: a) (c :.: b) s
-cross = JoinL . fmap ForkL . diagR zero
+cross = JoinL . fmap ForkL . diagRep zero
 
 {- Note that
 
