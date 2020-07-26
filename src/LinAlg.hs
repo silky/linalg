@@ -185,10 +185,10 @@ m         .@ (p :|# q) = (m .@ p) :|# (m .@ q)     -- binary coproduct law
 (r :|# s) .@ (p :&# q) = (r .@ p) + (s .@ q)       -- biproduct law
 ForkL ms' .@ m         = ForkL (fmap (.@ m) ms')   -- n-ary product law
 m'        .@ JoinL ms  = JoinL (fmap (m' .@) ms)   -- n-ary coproduct law
-JoinL ms' .@ ForkL ms  = sum (ms' .@* ms)          -- biproduct law
+JoinL ms' .@ ForkL ms  = sum (ms' .^ ms)          -- biproduct law
 
-(.@*) :: (Representable p, Semiring s) => p (L g h s) -> p (L f g s) -> p (L f h s)
-(.@*) = liftR2 (.@)
+(.^) :: (Representable p, Semiring s) => p (L g h s) -> p (L f g s) -> p (L f h s)
+(.^) = liftR2 (.@)
 
 instance (HasScaleV f, Semiring s) => Semiring (L f f s) where
   one = idL
@@ -224,7 +224,7 @@ f *** g = (f :|# Zero) :&# (Zero :|# g)
 
 -- N-ary biproduct bifunctor
 cross :: (V a, HasScaleV2 b c, Semiring s) => c (L a b s) -> L (c :.: a) (c :.: b) s
-cross fs = JoinL (ins .@* fs)
+cross fs = JoinL (ins .^ fs)
 
 #if 0
 -- Equivalently,
@@ -239,5 +239,5 @@ f *** g = (inl .@ f) :|# (inr .@ g)
 
 -- Equivalently,
 cross :: (V a, HasScaleV2 a c, Semiring s) => c (L a b s) -> L (c :.: a) (c :.: b) s
-cross fs = ForkL (fs .@* exs)
+cross fs = ForkL (fs .^ exs)
 #endif
