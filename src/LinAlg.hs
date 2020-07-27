@@ -50,7 +50,7 @@ infixr 2 :|#
 -- | Compositional Linear map representation. @L f g s@ denotes @f s -* g s@,
 -- where @(-*)@ means linear functions.
 data L :: (* -> *) -> (* -> *) -> (* -> *) where
-  Zero :: L f g s
+  -- Zero :: L f g s
   Scale :: s -> L Par1 Par1 s
   (:|#) :: L f h s -> L g h s -> L (f :*: g) h s
   (:&#) :: L f h s -> L f k s -> L f (h :*: k) s
@@ -72,7 +72,7 @@ instance (HasScaleV a, HasScaleV b, Representable b) => HasScaleV (b :.: a) wher
   scaleV s = cross (pureRep (scaleV s))
 
 unjoin2 :: Additive s => L (f :*: g) h s -> L f h s :* L g h s
-unjoin2 Zero = (zero,zero)
+-- unjoin2 Zero = (zero,zero)
 unjoin2 (p :|# q) = (p,q)
 unjoin2 ((unjoin2 -> (p,q)) :&# (unjoin2 -> (r,s))) = (p :& r, q :& s)
 unjoin2 (ForkL ms) = (ForkL A.*** ForkL) (unzip (unjoin2 <$> ms))
@@ -92,7 +92,7 @@ unjoin2 (ForkL ms) = (ForkL A.*** ForkL) (unzip (unjoin2 <$> ms))
 #endif
 
 unfork2 :: Additive s => L f (h :*: k) s -> L f h s :* L f k s
-unfork2 Zero = (zero,zero)
+-- unfork2 Zero = (zero,zero)
 unfork2 (p :&# q) = (p,q)
 unfork2 ((unfork2 -> (p,q)) :|# (unfork2 -> (r,s))) = (p :|# r, q :|# s)
 unfork2 (JoinL ms) = (JoinL A.*** JoinL) (unzip (unfork2 <$> ms))
@@ -112,7 +112,7 @@ pattern u :| v <- (unjoin2 -> (u,v)) where (:|) = (:|#)
 -- {-# complete Join #-}
 
 unforkL :: Representable h => L f (h :.: g) s -> h (L f g s)
-unforkL Zero       = pureRep Zero
+-- unforkL Zero       = pureRep Zero
 unforkL (p :|# q)  = liftR2 (:|#) (unforkL p) (unforkL q)
 unforkL (ForkL ms) = ms
 unforkL (JoinL ms) = JoinL <$> distribute (unforkL <$> ms)
@@ -137,7 +137,7 @@ JoinL <$> distrib (unforkL <$> ms) :: h (L (k :.: f) g s)
 #endif
 
 unjoinL :: Representable h => L (h :.: f) g s -> h (L f g s)
-unjoinL Zero       = pureRep Zero
+-- unjoinL Zero       = pureRep Zero
 unjoinL (p :&# p') = liftR2 (:&#) (unjoinL p) (unjoinL p')
 unjoinL (JoinL ms) = ms
 unjoinL (ForkL ms) = fmap ForkL (distribute (fmap unjoinL ms))
@@ -151,9 +151,9 @@ pattern Join ms <- (unjoinL -> ms) where Join = JoinL
 {-# complete Join #-}
 
 instance Additive s => Additive (L f g s) where
-  zero = Zero
-  Zero + m = m
-  m + Zero = m
+  zero = zeroL
+  -- Zero + m = m
+  -- m + Zero = m
   Scale s + Scale s' = Scale (s + s') -- distributivity
   (f :|# g) + (h :| k) = (f + h) :| (g + k)
   (f :&# g) + (h :& k) = (f + h) :& (g + k)
@@ -177,8 +177,8 @@ idL = scaleV one
 
 infixr 9 .@
 (.@) :: Semiring s => L g h s -> L f g s -> L f h s
-Zero      .@ _         = Zero                      -- Zero denotation
-_         .@ Zero      = Zero                      -- linearity
+-- Zero      .@ _         = Zero                      -- Zero denotation
+-- _         .@ Zero      = Zero                      -- linearity
 Scale a   .@ Scale b   = Scale (a * b)             -- Scale denotation
 (p :&# q) .@ m         = (p .@ m) :&# (q .@ m)     -- binary product law
 m         .@ (p :|# q) = (m .@ p) :|# (m .@ q)     -- binary coproduct law
@@ -224,7 +224,7 @@ exs = unforkL idL
 
 -- Binary biproduct bifunctor
 (***) :: L a c s -> L b d s -> L (a :*: b) (c :*: d) s
-f *** g = (f :|# Zero) :&# (Zero :|# g)
+f *** g = (f :|# zero) :&# (zero :|# g)
 
 -- N-ary biproduct bifunctor
 cross :: (V c, Additive s) => c (L a b s) -> L (c :.: a) (c :.: b) s
@@ -232,8 +232,8 @@ cross = JoinL . fmap ForkL . diagRep zero
 
 {- Note that
 
-f *** g == (f :|# Zero) :&# (Zero :|# g)
-        == (f :&# Zero) :|# (Zero :&# g)
+f *** g == (f :|# zero) :&# (zero :|# g)
+        == (f :&# zero) :|# (zero :&# g)
         == (f .@ exl) :&# (g .@ exr)
         == (inl .@ f) :|# (inr .@ g)
 
