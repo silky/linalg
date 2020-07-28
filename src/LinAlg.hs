@@ -301,6 +301,8 @@ instance V2 a b => ToRowMajor (b :.: a) where
   rowMajToL (Comp1 as) = Fork (rowMajToL <$> as)
   lToRowMaj (Fork m) = Comp1 (lToRowMaj <$> m)
 
+-- TODO: Similarly for ToCol and ToColMajor
+
 -- The zero linear map
 zeroL :: (V2 a b, Additive s) => L a b s
 zeroL = rowMajToL (pureRep (pureRep zero))
