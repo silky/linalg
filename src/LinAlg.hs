@@ -56,7 +56,6 @@ infixr 2 :|#
 -- | Compositional Linear map representation. @L f g s@ denotes @f s -* g s@,
 -- where @(-*)@ means linear functions.
 data L :: (* -> *) -> (* -> *) -> (* -> *) where
-  -- Zero :: L f g s
   Scale :: s -> L Par1 Par1 s
   (:|#) :: V3 f g h => L f h s -> L g h s -> L (f :*: g) h s
   (:&#) :: V3 f h k => L f h s -> L f k s -> L f (h :*: k) s
@@ -71,14 +70,13 @@ type HasScaleV2 a b = (HasScaleV a, HasScaleV b)
 
 instance HasScaleV Par1 where scaleV = Scale
 
-instance (HasScaleV a, HasScaleV b) => HasScaleV (a :*: b) where
+instance HasScaleV2 a b => HasScaleV (a :*: b) where
   scaleV s = scaleV s *** scaleV s
 
-instance (HasScaleV a, HasScaleV b, Representable b) => HasScaleV (b :.: a) where
+instance (HasScaleV2 a b, Representable b) => HasScaleV (b :.: a) where
   scaleV s = cross (pureRep (scaleV s))
 
 unjoin2 :: (V3 f g h, Additive s) => L (f :*: g) h s -> L f h s :* L g h s
--- unjoin2 Zero = (zero,zero)
 unjoin2 (p :|# q) = (p,q)
 unjoin2 ((unjoin2 -> (p,q)) :&# (unjoin2 -> (r,s))) = (p :& r, q :& s)
 unjoin2 (ForkL ms) = (ForkL A.*** ForkL) (unzip (unjoin2 <$> ms))
@@ -98,7 +96,6 @@ unjoin2 (ForkL ms) = (ForkL A.*** ForkL) (unzip (unjoin2 <$> ms))
 #endif
 
 unfork2 :: (V3 f h k, Additive s) => L f (h :*: k) s -> L f h s :* L f k s
--- unfork2 Zero = (zero,zero)
 unfork2 (p :&# q) = (p,q)
 unfork2 ((unfork2 -> (p,q)) :|# (unfork2 -> (r,s))) = (p :|# r, q :|# s)
 unfork2 (JoinL ms) = (JoinL A.*** JoinL) (unzip (unfork2 <$> ms))
@@ -118,7 +115,6 @@ pattern u :| v <- (unjoin2 -> (u,v)) where (:|) = (:|#)
 -- {-# complete Join #-}
 
 unforkL :: V3 f g h => L f (h :.: g) s -> h (L f g s)
--- unforkL Zero       = pureRep Zero
 unforkL (p :|# q)  = liftR2 (:|#) (unforkL p) (unforkL q)
 unforkL (ForkL ms) = ms
 unforkL (JoinL ms) = JoinL <$> distribute (unforkL <$> ms)
@@ -143,7 +139,6 @@ JoinL <$> distrib (unforkL <$> ms) :: h (L (k :.: f) g s)
 #endif
 
 unjoinL :: V3 f g h => L (h :.: f) g s -> h (L f g s)
--- unjoinL Zero       = pureRep Zero
 unjoinL (p :&# p') = liftR2 (:&#) (unjoinL p) (unjoinL p')
 unjoinL (JoinL ms) = ms
 unjoinL (ForkL ms) = fmap ForkL (distribute (fmap unjoinL ms))
@@ -156,10 +151,8 @@ pattern Join :: V3 f g h => h (L f g s) -> L (h :.: f) g s
 pattern Join ms <- (unjoinL -> ms) where Join = JoinL
 {-# complete Join #-}
 
-instance (HasZeroL f g, Additive s) => Additive (L f g s) where
+instance (V2 f g, Additive s) => Additive (L f g s) where
   zero = zeroL
-  -- Zero + m = m
-  -- m + Zero = m
   Scale s + Scale s' = Scale (s + s') -- distributivity
   (f :|# g) + (h :| k) = (f + h) :| (g + k)
   (f :&# g) + (h :& k) = (f + h) :& (g + k)
@@ -183,8 +176,6 @@ idL = scaleV one
 
 infixr 9 .@
 (.@) :: (V3 f g h, Semiring s) => L g h s -> L f g s -> L f h s
--- Zero      .@ _         = Zero                      -- Zero denotation
--- _         .@ Zero      = Zero                      -- linearity
 Scale a   .@ Scale b   = Scale (a * b)             -- Scale denotation
 (p :&# q) .@ m         = (p .@ m) :&# (q .@ m)     -- binary product law
 m         .@ (p :|# q) = (m .@ p) :|# (m .@ q)     -- binary coproduct law
@@ -250,13 +241,11 @@ cross fs == JoinL (ins .^ fs)
 -}
 
 -- The zero linear map
-zeroL :: (HasZeroL a b, Additive s) => L a b s
+zeroL :: (V2 a b, Additive s) => L a b s
 zeroL = zeroF
 
 class HasZA a where zeroJ :: Additive s => L a Par1 s
 class HasZB b where zeroF :: (HasZA a, V a, Additive s) => L a b s
-
-type HasZeroL a b = (V2 a b, HasZA a, HasZB b)
 
 instance HasZA Par1 where zeroJ = Scale zero
 instance (HasZA a, HasZA a', V2 a a') => HasZA (a :*: a') where zeroJ = zeroJ :| zeroJ
