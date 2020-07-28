@@ -4,7 +4,6 @@
 
 module F where
 
-import qualified Prelude as P
 import Prelude hiding (id,(.))
 
 import GHC.Generics ((:*:)(..))
