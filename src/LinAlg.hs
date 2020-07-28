@@ -1,8 +1,10 @@
+-- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
+
 -- | Linear algebra after Fortran
 
 module LinAlg where
 
-import qualified Prelude as P
+-- import qualified Prelude as P
 import Prelude hiding ((+),sum,(*),unzip)
 
 import GHC.Generics (Par1(..), (:*:)(..), (:.:)(..))
@@ -10,39 +12,11 @@ import qualified Control.Arrow as A
 import Data.Distributive
 import Data.Functor.Rep
 
-infixl 7 :*
-type (:*)  = (,)
-
--- infixl 6 :+
--- type (:+)  = Either
-
-unzip :: Functor f => f (a :* b) -> f a :* f b
-unzip ps = (fst <$> ps, snd <$> ps)
+import Misc
 
 type V f = (Representable f, Foldable f, Eq (Rep f))
 type V2 f g = (V f, V g)
 type V3 f g h = (V2 f g, V h)
-
-class Additive a where
-  infixl 6 +
-  zero :: a
-  (+) :: a -> a -> a
-
-class Additive a => Semiring a where
-  infixl 7 *
-  one :: a
-  (*) :: a -> a -> a
-
-sum :: (Foldable f, Additive a) => f a -> a
-sum = foldr (+) zero
-
--- | Vector addition
-infixl 6 +^
-(+^) :: (Representable f, Additive s) => f s -> f s -> f s
-(+^) = liftR2 (+)
-
-instance Additive Double where { zero = 0; (+) = (P.+) }
-instance Semiring Double where { one  = 1; (*) = (P.*) }
 
 infixr 3 :&#
 infixr 2 :|#

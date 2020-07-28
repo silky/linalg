@@ -17,15 +17,14 @@ default-extensions:
   - GADTs
   # - GeneralizedNewtypeDeriving
   # - LambdaCase
-  # - MultiParamTypeClasses
-  # - OverloadedStrings  # for Poly, since dante doesn't pick up
+  - MultiParamTypeClasses
   - PatternSynonyms
   # - QuantifiedConstraints
   # - RankNTypes
   # - StandaloneDeriving
   # - TupleSections
   - TypeApplications
-  # - TypeFamilies
+  - TypeFamilies
   - TypeOperators
   # - UndecidableInstances
   - ViewPatterns
@@ -33,6 +32,7 @@ default-extensions:
   - KindSignatures
   # - NoStarIsType
   - TypeSynonymInstances
+  - PolyKinds
 
 ghc-options:
   -Wall
@@ -40,9 +40,13 @@ ghc-options:
 library:
   dependencies:
     - base
+    - ghc-prim  # GHC.Types (Constraint)
     - distributive
     - adjunctions
   other-modules: []
   source-dirs: src
   exposed-modules:
+    - Misc
     - LinAlg
+    - Category
+    - F
