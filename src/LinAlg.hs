@@ -250,12 +250,16 @@ class HasZA a where zeroJ :: Additive s => L a Par1 s
 class HasZB b where zeroF :: (HasZA a, V a, Additive s) => L a b s
 
 instance HasZA Par1 where zeroJ = Scale zero
-instance (HasZA a, HasZA a', V2 a a') => HasZA (a :*: a') where zeroJ = zeroJ :| zeroJ
-instance (HasZA a, V c, V a) => HasZA (c :.: a) where zeroJ = JoinL (pureRep zeroJ)
+instance (HasZA a, HasZA a', V2 a a') => HasZA (a :*: a') where
+  zeroJ = zeroJ :| zeroJ
+instance (HasZA a, V c, V a) => HasZA (c :.: a) where
+  zeroJ = JoinL (pureRep zeroJ)
 
 instance HasZB Par1 where zeroF = zeroJ
-instance (HasZB b, HasZB b', V2 b b') => HasZB (b :*: b') where zeroF = zeroF :& zeroF
-instance (HasZB b, V c, V b) => HasZB (c :.: b) where zeroF = ForkL (pureRep zeroF)
+instance (HasZB b, HasZB b', V2 b b') => HasZB (b :*: b') where
+  zeroF = zeroF :& zeroF
+instance (HasZB b, V c, V b) => HasZB (c :.: b) where
+  zeroF = ForkL (pureRep zeroF)
 
 -- Illegal nested constraint ‘Eq (Rep c)’
 -- (Use UndecidableInstances to permit this)
