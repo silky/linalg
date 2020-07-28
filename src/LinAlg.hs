@@ -61,22 +61,6 @@ data L :: (* -> *) -> (* -> *) -> (* -> *) where
   JoinL :: V3 f g h => h (L f g s) -> L (h :.: f) g s
   ForkL :: V3 f g h => h (L f g s) -> L f (h :.: g) s
 
--- Scalable vectors
-class V a => HasScaleV a where
-  scaleV :: Semiring s => s -> L a a s
-
--- TODO: Can we eliminate HasScaleV in favor of using ToRowMajor?
-
-type HasScaleV2 a b = (HasScaleV a, HasScaleV b)
-
-instance HasScaleV Par1 where scaleV = Scale
-
-instance HasScaleV2 a b => HasScaleV (a :*: b) where
-  scaleV s = scaleV s *** scaleV s
-
-instance (HasScaleV2 a b, Representable b) => HasScaleV (b :.: a) where
-  scaleV s = cross (pureRep (scaleV s))
-
 unjoin2 :: (V3 f g h, Additive s) => L (f :*: g) h s -> L f h s :* L g h s
 unjoin2 (p :|# q) = (p,q)
 unjoin2 ((unjoin2 -> (p,q)) :&# (unjoin2 -> (r,s))) = (p :& r, q :& s)
@@ -172,7 +156,7 @@ diagRep :: (Representable h, Eq (Rep h)) => a -> h a -> h (h a)
 diagRep dflt as =
   tabulate (\ i -> tabulate (\ j -> if i == j then as `index` i else dflt))
 
-idL :: (HasScaleV a, Semiring s) => L a a s
+idL :: (V a, Semiring s) => L a a s
 idL = scaleV one
 
 infixr 9 .@
@@ -189,34 +173,34 @@ JoinL ms' .@ ForkL ms  = sum (ms' .^ ms)           -- biproduct law
      => p (L g h s) -> p (L f g s) -> p (L f h s)
 (.^) = liftR2 (.@)
 
-instance (HasScaleV f, Semiring s) => Semiring (L f f s) where
+instance (V f, Semiring s) => Semiring (L f f s) where
   one = idL
   (*) = (.@)
 
 -- Binary injections
 
-inl :: (HasScaleV a, V b, Semiring s) => L a (a :*: b) s 
+inl :: (V a, V b, Semiring s) => L a (a :*: b) s 
 inl = idL :& zero
 
-inr :: (V a, HasScaleV b, Semiring s) => L b (a :*: b) s 
+inr :: (V2 a b, Semiring s) => L b (a :*: b) s 
 inr = zero :& idL
 
 -- Binary projections
 
-exl :: (HasScaleV a, V b, Semiring s) => L (a :*: b) a s 
+exl :: (V2 a b, Semiring s) => L (a :*: b) a s 
 exl = idL :| zero
 
-exr :: (V a, HasScaleV b, Semiring s) => L (a :*: b) b s 
+exr :: (V2 a b, Semiring s) => L (a :*: b) b s 
 exr = zero :| idL
 
 -- Note that idL == inl :| inr == exl :& exr.
 
 -- N-ary injections
-ins :: (HasScaleV2 a c, Semiring s) => c (L a (c :.: a) s)
+ins :: (V2 a c, Semiring s) => c (L a (c :.: a) s)
 ins = unjoinL idL
 
 -- N-ary projections
-exs :: (HasScaleV2 a c, Semiring s) => c (L (c :.: a) a s)
+exs :: (V2 a c, Semiring s) => c (L (c :.: a) a s)
 exs = unforkL idL
 
 -- Note that idL == joinL ins == forkL exs
@@ -321,3 +305,6 @@ instance V2 a b => ToRowMajor (b :.: a) where
 zeroL :: (V2 a b, Additive s) => L a b s
 zeroL = rowMajToL (pureRep (pureRep zero))
 
+-- Vector scaling
+scaleV :: (V a, Semiring s) => s -> L a a s
+scaleV s = rowMajToL (diagRep zero (pureRep s))
