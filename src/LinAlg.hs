@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-} -- see below
+
 -- | Linear algebra after Fortran
 
 module LinAlg where
@@ -5,6 +7,7 @@ module LinAlg where
 import qualified Prelude as P
 import Prelude hiding ((+),sum,(*),unzip)
 
+import GHC.Types (Constraint)
 import GHC.Generics (Par1(..), (:*:)(..), (:.:)(..))
 import qualified Control.Arrow as A
 import Data.Distributive
@@ -19,9 +22,12 @@ type (:*)  = (,)
 unzip :: Functor f => f (a :* b) -> f a :* f b
 unzip ps = (fst <$> ps, snd <$> ps)
 
-type V f = (Representable f, Foldable f, Eq (Rep f))
+type V f = ((Representable f, Foldable f, Eq (Rep f), HasZA f, HasZB f) :: Constraint)
 type V2 f g = (V f, V g)
 type V3 f g h = (V2 f g, V h)
+type V4 f g h k = (V2 f g, V2 h k)
+
+-- Why does V suddenly need ":: Constraint" after adding HasZA f and HasZB f?
 
 class Additive a where
   infixl 6 +
@@ -52,10 +58,10 @@ infixr 2 :|#
 data L :: (* -> *) -> (* -> *) -> (* -> *) where
   -- Zero :: L f g s
   Scale :: s -> L Par1 Par1 s
-  (:|#) :: L f h s -> L g h s -> L (f :*: g) h s
-  (:&#) :: L f h s -> L f k s -> L f (h :*: k) s
-  JoinL :: V h => h (L f g s) -> L (h :.: f) g s
-  ForkL :: V h => h (L f g s) -> L f (h :.: g) s
+  (:|#) :: V3 f g h => L f h s -> L g h s -> L (f :*: g) h s
+  (:&#) :: V3 f h k => L f h s -> L f k s -> L f (h :*: k) s
+  JoinL :: V3 f g h => h (L f g s) -> L (h :.: f) g s
+  ForkL :: V3 f g h => h (L f g s) -> L f (h :.: g) s
 
 -- Scalable vectors
 class V a => HasScaleV a where
@@ -71,7 +77,7 @@ instance (HasScaleV a, HasScaleV b) => HasScaleV (a :*: b) where
 instance (HasScaleV a, HasScaleV b, Representable b) => HasScaleV (b :.: a) where
   scaleV s = cross (pureRep (scaleV s))
 
-unjoin2 :: Additive s => L (f :*: g) h s -> L f h s :* L g h s
+unjoin2 :: (V3 f g h, Additive s) => L (f :*: g) h s -> L f h s :* L g h s
 -- unjoin2 Zero = (zero,zero)
 unjoin2 (p :|# q) = (p,q)
 unjoin2 ((unjoin2 -> (p,q)) :&# (unjoin2 -> (r,s))) = (p :& r, q :& s)
@@ -91,7 +97,7 @@ unjoin2 (ForkL ms) = (ForkL A.*** ForkL) (unzip (unjoin2 <$> ms))
 (ForkL *** ForkL) (unzip (unjoin <$> ms)) :: L f (k :.: h) s :* L g (k :.: h) s
 #endif
 
-unfork2 :: Additive s => L f (h :*: k) s -> L f h s :* L f k s
+unfork2 :: (V3 f h k, Additive s) => L f (h :*: k) s -> L f h s :* L f k s
 -- unfork2 Zero = (zero,zero)
 unfork2 (p :&# q) = (p,q)
 unfork2 ((unfork2 -> (p,q)) :|# (unfork2 -> (r,s))) = (p :|# r, q :|# s)
@@ -99,11 +105,11 @@ unfork2 (JoinL ms) = (JoinL A.*** JoinL) (unzip (unfork2 <$> ms))
 
 -- unfork2 ((p :& q) :|# (r :& s)) = (p :|# r, q :|# s)
 
-pattern (:&) :: Additive s => L f h s -> L f k s -> L f (h :*: k) s
+pattern (:&) :: (V3 f h k, Additive s) => L f h s -> L f k s -> L f (h :*: k) s
 pattern u :& v <- (unfork2 -> (u,v)) where (:&) = (:&#)
 {-# complete (:&) #-}
 
-pattern (:|) :: Additive s => L f h s -> L g h s -> L (f :*: g) h s
+pattern (:|) :: (V3 f g h, Additive s) => L f h s -> L g h s -> L (f :*: g) h s
 pattern u :| v <- (unjoin2 -> (u,v)) where (:|) = (:|#)
 {-# complete (:|) #-}
 
@@ -111,7 +117,7 @@ pattern u :| v <- (unjoin2 -> (u,v)) where (:|) = (:|#)
 -- pattern Join ms <- (unjoinL -> ms) where Join = JoinL
 -- {-# complete Join #-}
 
-unforkL :: Representable h => L f (h :.: g) s -> h (L f g s)
+unforkL :: V3 f g h => L f (h :.: g) s -> h (L f g s)
 -- unforkL Zero       = pureRep Zero
 unforkL (p :|# q)  = liftR2 (:|#) (unforkL p) (unforkL q)
 unforkL (ForkL ms) = ms
@@ -136,21 +142,21 @@ liftR2 (:|#) (unforkL p) (unforkL p') :: h (L (f :*: f') g s)
 JoinL <$> distrib (unforkL <$> ms) :: h (L (k :.: f) g s)
 #endif
 
-unjoinL :: Representable h => L (h :.: f) g s -> h (L f g s)
+unjoinL :: V3 f g h => L (h :.: f) g s -> h (L f g s)
 -- unjoinL Zero       = pureRep Zero
 unjoinL (p :&# p') = liftR2 (:&#) (unjoinL p) (unjoinL p')
 unjoinL (JoinL ms) = ms
 unjoinL (ForkL ms) = fmap ForkL (distribute (fmap unjoinL ms))
 
-pattern Fork :: V h => h (L f g s) -> L f (h :.: g) s
+pattern Fork :: V3 f g h => h (L f g s) -> L f (h :.: g) s
 pattern Fork ms <- (unforkL -> ms) where Fork = ForkL
 {-# complete Fork #-}
 
-pattern Join :: V h => h (L f g s) -> L (h :.: f) g s
+pattern Join :: V3 f g h => h (L f g s) -> L (h :.: f) g s
 pattern Join ms <- (unjoinL -> ms) where Join = JoinL
 {-# complete Join #-}
 
-instance Additive s => Additive (L f g s) where
+instance (HasZeroL f g, Additive s) => Additive (L f g s) where
   zero = zeroL
   -- Zero + m = m
   -- m + Zero = m
@@ -176,7 +182,7 @@ idL :: (HasScaleV a, Semiring s) => L a a s
 idL = scaleV one
 
 infixr 9 .@
-(.@) :: Semiring s => L g h s -> L f g s -> L f h s
+(.@) :: (V3 f g h, Semiring s) => L g h s -> L f g s -> L f h s
 -- Zero      .@ _         = Zero                      -- Zero denotation
 -- _         .@ Zero      = Zero                      -- linearity
 Scale a   .@ Scale b   = Scale (a * b)             -- Scale denotation
@@ -187,7 +193,8 @@ ForkL ms' .@ m         = ForkL (fmap (.@ m) ms')   -- n-ary product law
 m'        .@ JoinL ms  = JoinL (fmap (m' .@) ms)   -- n-ary coproduct law
 JoinL ms' .@ ForkL ms  = sum (ms' .^ ms)           -- biproduct law
 
-(.^) :: (Representable p, Semiring s) => p (L g h s) -> p (L f g s) -> p (L f h s)
+(.^) :: (V3 f g h, Representable p, Semiring s)
+     => p (L g h s) -> p (L f g s) -> p (L f h s)
 (.^) = liftR2 (.@)
 
 instance (HasScaleV f, Semiring s) => Semiring (L f f s) where
@@ -196,18 +203,18 @@ instance (HasScaleV f, Semiring s) => Semiring (L f f s) where
 
 -- Binary injections
 
-inl :: (HasScaleV a, Semiring s) => L a (a :*: b) s 
+inl :: (HasScaleV a, V b, Semiring s) => L a (a :*: b) s 
 inl = idL :& zero
 
-inr :: (HasScaleV b, Semiring s) => L b (a :*: b) s 
+inr :: (V a, HasScaleV b, Semiring s) => L b (a :*: b) s 
 inr = zero :& idL
 
 -- Binary projections
 
-exl :: (HasScaleV a, Semiring s) => L (a :*: b) a s 
+exl :: (HasScaleV a, V b, Semiring s) => L (a :*: b) a s 
 exl = idL :| zero
 
-exr :: (HasScaleV b, Semiring s) => L (a :*: b) b s 
+exr :: (V a, HasScaleV b, Semiring s) => L (a :*: b) b s 
 exr = zero :| idL
 
 -- Note that idL == inl :| inr == exl :& exr.
@@ -223,11 +230,11 @@ exs = unforkL idL
 -- Note that idL == joinL ins == forkL exs
 
 -- Binary biproduct bifunctor
-(***) :: L a c s -> L b d s -> L (a :*: b) (c :*: d) s
-f *** g = (f :|# zero) :&# (zero :|# g)
+(***) :: (V4 a b c d, Additive s) => L a c s -> L b d s -> L (a :*: b) (c :*: d) s
+f *** g = (f :|# zeroL) :&# (zeroL :|# g)
 
 -- N-ary biproduct bifunctor
-cross :: (V c, Additive s) => c (L a b s) -> L (c :.: a) (c :.: b) s
+cross :: (V3 a b c, Additive s) => c (L a b s) -> L (c :.: a) (c :.: b) s
 cross = JoinL . fmap ForkL . diagRep zero
 
 {- Note that
@@ -241,3 +248,23 @@ cross fs == JoinL (ins .^ fs)
          == ForkL (fs .^ exs)
 
 -}
+
+-- The zero linear map
+zeroL :: (HasZeroL a b, Additive s) => L a b s
+zeroL = zeroF
+
+class HasZA a where zeroJ :: Additive s => L a Par1 s
+class HasZB b where zeroF :: (HasZA a, V a, Additive s) => L a b s
+
+type HasZeroL a b = (V2 a b, HasZA a, HasZB b)
+
+instance HasZA Par1 where zeroJ = Scale zero
+instance (HasZA a, HasZA a', V2 a a') => HasZA (a :*: a') where zeroJ = zeroJ :| zeroJ
+instance (HasZA a, V c, V a) => HasZA (c :.: a) where zeroJ = JoinL (pureRep zeroJ)
+
+instance HasZB Par1 where zeroF = zeroJ
+instance (HasZB b, HasZB b', V2 b b') => HasZB (b :*: b') where zeroF = zeroF :& zeroF
+instance (HasZB b, V c, V b) => HasZB (c :.: b) where zeroF = ForkL (pureRep zeroF)
+
+-- Illegal nested constraint ‘Eq (Rep c)’
+-- (Use UndecidableInstances to permit this)
