@@ -222,7 +222,7 @@ exs = unforkL idL
 
 -- Binary biproduct bifunctor
 (***) :: (V4 a b c d, Additive s) => L a c s -> L b d s -> L (a :*: b) (c :*: d) s
-f *** g = (f :|# zeroL) :&# (zeroL :|# g)
+f *** g = (f :|# zero) :&# (zero :|# g)
 
 -- N-ary biproduct bifunctor
 cross :: (V3 a b c, Additive s) => c (L a b s) -> L (c :.: a) (c :.: b) s
@@ -243,6 +243,8 @@ cross fs == JoinL (ins .^ fs)
 -- The zero linear map
 zeroL :: (V2 a b, Additive s) => L a b s
 zeroL = zeroF
+
+-- zeroL has a tidier ":i" signature than zeroF
 
 class HasZA a where zeroJ :: Additive s => L a Par1 s
 class HasZB b where zeroF :: (HasZA a, V a, Additive s) => L a b s
