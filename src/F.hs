@@ -1,8 +1,6 @@
 -- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
--- | Linear functions
---
--- 
+-- | Linear functions, providing denotational specification for L.
 
 module F where
 
