@@ -16,19 +16,17 @@ import Data.Functor.Rep
 infixl 7 :*
 type (:*)  = (,)
 
--- infixl 6 :+
--- type (:+)  = Either
-
 unzip :: Functor f => f (a :* b) -> f a :* f b
 unzip ps = (fst <$> ps, snd <$> ps)
 
-type V f = ((Representable f, Foldable f, Eq (Rep f), HasZA f, HasZB f)
+type V f = ((Representable f, Foldable f, Eq (Rep f), ToScalar f, ToRowMajor f)
             :: Constraint)
 type V2 f g = (V f, V g)
 type V3 f g h = (V2 f g, V h)
 type V4 f g h k = (V2 f g, V2 h k)
 
--- Why does V suddenly need ":: Constraint" after adding HasZA f and HasZB f?
+-- TODO: Why does V suddenly need ":: Constraint" after adding ToScalar f and
+-- ToRowMajor f?
 
 class Additive a where
   infixl 6 +
@@ -66,6 +64,8 @@ data L :: (* -> *) -> (* -> *) -> (* -> *) where
 -- Scalable vectors
 class V a => HasScaleV a where
   scaleV :: Semiring s => s -> L a a s
+
+-- TODO: Can we eliminate HasScaleV in favor of using ToRowMajor?
 
 type HasScaleV2 a b = (HasScaleV a, HasScaleV b)
 
@@ -242,26 +242,82 @@ cross fs == JoinL (ins .^ fs)
 
 -}
 
+-- See discussion in https://github.com/conal/linalg/pull/26
+
+-- Linear algebra duality isomorphism: a s =~ a s :-* s.
+class ToScalar a where
+  rowToL :: Additive s => a s -> L a Par1 s
+  lToRow :: Additive s => L a Par1 s -> a s
+
+pattern RowToL :: (ToScalar a, Additive s) => a s -> L a Par1 s
+pattern RowToL a <- (lToRow -> a) where RowToL = rowToL
+{-# complete RowToL #-}
+
+pattern LToRow :: (ToScalar a, Additive s) => L a Par1 s -> a s
+pattern LToRow m <- (rowToL -> m) where LToRow = lToRow
+{-# complete LToRow :: () #-}
+
+-- • A type signature must be provided for a set of polymorphic pattern synonyms.
+-- • In {-# complete LToRow #-}
+-- |
+-- | {-# complete LToRow #-}
+
+-- The ":: ()" gets around this error message, but I don't know whether the
+-- pattern will still work.
+
+type ToScalar2 a b = (ToScalar a, ToScalar b)
+
+instance ToScalar Par1 where
+  rowToL (Par1 s) = Scale s
+  lToRow (Scale s) = Par1 s
+
+instance V2 a b => ToScalar (a :*: b) where
+  rowToL (a :*: b) = RowToL a :| RowToL b
+  lToRow (RowToL a :| RowToL b) = a :*: b
+
+instance V2 a b => ToScalar (b :.: a) where
+  rowToL (Comp1 as) = Join (rowToL <$> as)
+  lToRow (Join m) = Comp1 (lToRow <$> m)
+
+--                  as  :: b (a s)
+--       rowToL <$> as  :: b (L a Par1 s)
+-- Join (rowToL <$> as) :: L (b :.: a) Par1 s
+
+-- Row-major matrix
+type Rows a b s = b (a s)
+
+-- TODO: maybe "type Rows a b = b :.: a". If so, the zeroL' definition will have
+-- one pureRep instead of two, but every ToRowMajor clause will get an
+-- additional Comp1.
+
+-- Matrices and vector spaces are isomorphic, row-major version
+class ToRowMajor b where
+  rowMajToL :: (V a, Additive s) => Rows a b s -> L a b s
+  lToRowMaj :: (V a, Additive s) => L a b s -> Rows a b s
+
+type ToRowMajor2 a b = (ToRowMajor a, ToRowMajor b)
+
+pattern RowMajToL :: (V a, ToRowMajor b, Additive s) => Rows a b s -> L a b s
+pattern RowMajToL as <- (lToRowMaj -> as) where RowMajToL = rowMajToL
+{-# complete RowMajToL #-}
+
+pattern LToRowMaj :: (V a, ToRowMajor b, Additive s) => L a b s -> Rows a b s
+pattern LToRowMaj m <- (rowMajToL -> m) where LToRowMaj = lToRowMaj
+{-# complete LToRowMaj :: () #-} -- see LToRow comment
+
+instance ToRowMajor Par1 where
+  rowMajToL (Par1 a) = rowToL a
+  lToRowMaj (RowToL a) = Par1 a
+
+instance V2 b b' => ToRowMajor (b :*: b') where
+  rowMajToL (as :*: as') = RowMajToL as :& RowMajToL as'
+  lToRowMaj (RowMajToL as :& RowMajToL as') = as :*: as'
+
+instance V2 a b => ToRowMajor (b :.: a) where
+  rowMajToL (Comp1 as) = Fork (rowMajToL <$> as)
+  lToRowMaj (Fork m) = Comp1 (lToRowMaj <$> m)
+
 -- The zero linear map
 zeroL :: (V2 a b, Additive s) => L a b s
-zeroL = zeroF
+zeroL = rowMajToL (pureRep (pureRep zero))
 
--- zeroL has a tidier ":i" signature than zeroF
-
-class HasZA a where zeroJ :: Additive s => L a Par1 s
-class HasZB b where zeroF :: (HasZA a, V a, Additive s) => L a b s
-
-instance HasZA Par1 where zeroJ = Scale zero
-instance (HasZA a, HasZA a', V2 a a') => HasZA (a :*: a') where
-  zeroJ = zeroJ :| zeroJ
-instance (HasZA a, V c, V a) => HasZA (c :.: a) where
-  zeroJ = JoinL (pureRep zeroJ)
-
-instance HasZB Par1 where zeroF = zeroJ
-instance (HasZB b, HasZB b', V2 b b') => HasZB (b :*: b') where
-  zeroF = zeroF :& zeroF
-instance (HasZB b, V c, V b) => HasZB (c :.: b) where
-  zeroF = ForkL (pureRep zeroF)
-
--- Illegal nested constraint ‘Eq (Rep c)’
--- (Use UndecidableInstances to permit this)
