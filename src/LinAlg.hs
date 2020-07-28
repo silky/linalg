@@ -22,7 +22,8 @@ type (:*)  = (,)
 unzip :: Functor f => f (a :* b) -> f a :* f b
 unzip ps = (fst <$> ps, snd <$> ps)
 
-type V f = ((Representable f, Foldable f, Eq (Rep f), HasZA f, HasZB f) :: Constraint)
+type V f = ((Representable f, Foldable f, Eq (Rep f), HasZA f, HasZB f)
+            :: Constraint)
 type V2 f g = (V f, V g)
 type V3 f g h = (V2 f g, V h)
 type V4 f g h k = (V2 f g, V2 h k)
@@ -221,7 +222,8 @@ exs = unforkL idL
 -- Note that idL == joinL ins == forkL exs
 
 -- Binary biproduct bifunctor
-(***) :: (V4 a b c d, Additive s) => L a c s -> L b d s -> L (a :*: b) (c :*: d) s
+(***) :: (V4 a b c d, Additive s)
+      => L a c s -> L b d s -> L (a :*: b) (c :*: d) s
 f *** g = (f :|# zero) :&# (zero :|# g)
 
 -- N-ary biproduct bifunctor
