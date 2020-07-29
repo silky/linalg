@@ -63,7 +63,7 @@ data L :: (* -> *) -> (* -> *) -> (* -> *) where
 
 unjoin2 :: V3 f g h => L (f :*: g) h s -> L f h s :* L g h s
 unjoin2 (p :|# q) = (p,q)
-unjoin2 ((unjoin2 -> (p,q)) :&# (unjoin2 -> (r,s))) = (p :&# r, q :&# s)
+unjoin2 ((unjoin2 -> (p,q)) :&# (unjoin2 -> (r,s))) = (p :& r, q :& s)
 unjoin2 (ForkL ms) = (ForkL A.*** ForkL) (unzip (unjoin2 <$> ms))
 
 -- unjoin2 ((p :| q) :&# (r :| s)) = (p :&# r, q :#& s)
