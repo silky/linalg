@@ -61,7 +61,7 @@ data L :: (* -> *) -> (* -> *) -> (* -> *) where
   JoinL :: V3 f g h => h (L f g s) -> L (h :.: f) g s
   ForkL :: V3 f g h => h (L f g s) -> L f (h :.: g) s
 
-unjoin2 :: (V3 f g h, Additive s) => L (f :*: g) h s -> L f h s :* L g h s
+unjoin2 :: V3 f g h => L (f :*: g) h s -> L f h s :* L g h s
 unjoin2 (p :|# q) = (p,q)
 unjoin2 ((unjoin2 -> (p,q)) :&# (unjoin2 -> (r,s))) = (p :& r, q :& s)
 unjoin2 (ForkL ms) = (ForkL A.*** ForkL) (unzip (unjoin2 <$> ms))
@@ -87,11 +87,11 @@ unfork2 (JoinL ms) = (JoinL A.*** JoinL) (unzip (unfork2 <$> ms))
 
 -- unfork2 ((p :& q) :|# (r :& s)) = (p :|# r, q :|# s)
 
-pattern (:&) :: (V3 f h k, Additive s) => L f h s -> L f k s -> L f (h :*: k) s
+pattern (:&) :: V3 f h k => L f h s -> L f k s -> L f (h :*: k) s
 pattern u :& v <- (unfork2 -> (u,v)) where (:&) = (:&#)
 {-# complete (:&) #-}
 
-pattern (:|) :: (V3 f g h, Additive s) => L f h s -> L g h s -> L (f :*: g) h s
+pattern (:|) :: V3 f g h => L f h s -> L g h s -> L (f :*: g) h s
 pattern u :| v <- (unjoin2 -> (u,v)) where (:|) = (:|#)
 {-# complete (:|) #-}
 
@@ -226,10 +226,10 @@ cross fs == JoinL (ins .^ fs)
 
 -- Linear algebra duality isomorphism: a s =~ a s :-* s.
 class ToScalar a where
-  rowToL :: Additive s => a s -> L a Par1 s
-  lToRow :: Additive s => L a Par1 s -> a s
+  rowToL :: a s -> L a Par1 s
+  lToRow :: L a Par1 s -> a s
 
-pattern RowToL :: (ToScalar a, Additive s) => a s -> L a Par1 s
+pattern RowToL :: ToScalar a => a s -> L a Par1 s
 pattern RowToL a <- (lToRow -> a) where RowToL = rowToL
 {-# complete RowToL #-}
 
@@ -260,12 +260,12 @@ type Rows a b s = b (a s)
 
 -- Matrices and vector spaces are isomorphic, row-major version
 class ToRowMajor b where
-  rowMajToL :: (V a, Additive s) => Rows a b s -> L a b s
-  lToRowMaj :: (V a, Additive s) => L a b s -> Rows a b s
+  rowMajToL :: V a => Rows a b s -> L a b s
+  lToRowMaj :: V a => L a b s -> Rows a b s
 
 type ToRowMajor2 a b = (ToRowMajor a, ToRowMajor b)
 
-pattern RowMajToL :: (V a, ToRowMajor b, Additive s) => Rows a b s -> L a b s
+pattern RowMajToL :: (V a, ToRowMajor b) => Rows a b s -> L a b s
 pattern RowMajToL as <- (lToRowMaj -> as) where RowMajToL = rowMajToL
 {-# complete RowMajToL #-}
 
@@ -288,5 +288,5 @@ zeroL :: (V2 a b, Additive s) => L a b s
 zeroL = rowMajToL (pureRep (pureRep zero))
 
 -- Vector scaling
-scaleV :: (V a, Semiring s) => s -> L a a s
+scaleV :: (V a, Additive s) => s -> L a a s
 scaleV s = rowMajToL (diagRep zero (pureRep s))
