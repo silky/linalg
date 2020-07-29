@@ -40,6 +40,7 @@ ghc-options:
 library:
   dependencies:
     - base
+    - ghc-prim  # GHC.Types (Constraint)
     - distributive
     - adjunctions
   other-modules: []
