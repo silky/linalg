@@ -288,5 +288,5 @@ zeroL :: (V2 a b, Additive s) => L a b s
 zeroL = rowMajToL (pureRep (pureRep zero))
 
 -- Vector scaling
-scaleV :: (V a, Semiring s) => s -> L a a s
+scaleV :: (V a, Additive s) => s -> L a a s
 scaleV s = rowMajToL (diagRep zero (pureRep s))
