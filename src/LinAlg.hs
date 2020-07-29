@@ -80,7 +80,7 @@ unjoin2 (ForkL ms) = (ForkL A.*** ForkL) (unzip (unjoin2 <$> ms))
 (ForkL *** ForkL) (unzip (unjoin <$> ms)) :: L f (k :.: h) s :* L g (k :.: h) s
 #endif
 
-unfork2 :: (V3 f h k, Additive s) => L f (h :*: k) s -> L f h s :* L f k s
+unfork2 :: V3 f h k => L f (h :*: k) s -> L f h s :* L f k s
 unfork2 (p :&# q) = (p,q)
 unfork2 ((unfork2 -> (p,q)) :|# (unfork2 -> (r,s))) = (p :|# r, q :|# s)
 unfork2 (JoinL ms) = (JoinL A.*** JoinL) (unzip (unfork2 <$> ms))
@@ -94,10 +94,6 @@ pattern u :& v <- (unfork2 -> (u,v)) where (:&) = (:&#)
 pattern (:|) :: (V3 f g h, Additive s) => L f h s -> L g h s -> L (f :*: g) h s
 pattern u :| v <- (unjoin2 -> (u,v)) where (:|) = (:|#)
 {-# complete (:|) #-}
-
--- pattern Join :: V h => h (L f g s) -> L (h :.: f) g s
--- pattern Join ms <- (unjoinL -> ms) where Join = JoinL
--- {-# complete Join #-}
 
 unforkL :: V3 f g h => L f (h :.: g) s -> h (L f g s)
 unforkL (p :|# q)  = liftR2 (:|#) (unforkL p) (unforkL q)
@@ -179,7 +175,7 @@ instance (V f, Semiring s) => Semiring (L f f s) where
 
 -- Binary injections
 
-inl :: (V a, V b, Semiring s) => L a (a :*: b) s 
+inl :: (V2 a b, Semiring s) => L a (a :*: b) s 
 inl = idL :& zero
 
 inr :: (V2 a b, Semiring s) => L b (a :*: b) s 
@@ -237,18 +233,6 @@ pattern RowToL :: (ToScalar a, Additive s) => a s -> L a Par1 s
 pattern RowToL a <- (lToRow -> a) where RowToL = rowToL
 {-# complete RowToL #-}
 
-pattern LToRow :: (ToScalar a, Additive s) => L a Par1 s -> a s
-pattern LToRow m <- (rowToL -> m) where LToRow = lToRow
-{-# complete LToRow :: () #-}
-
--- • A type signature must be provided for a set of polymorphic pattern synonyms.
--- • In {-# complete LToRow #-}
--- |
--- | {-# complete LToRow #-}
-
--- The ":: ()" gets around this error message, but I don't know whether the
--- pattern will still work.
-
 type ToScalar2 a b = (ToScalar a, ToScalar b)
 
 instance ToScalar Par1 where
@@ -284,10 +268,6 @@ type ToRowMajor2 a b = (ToRowMajor a, ToRowMajor b)
 pattern RowMajToL :: (V a, ToRowMajor b, Additive s) => Rows a b s -> L a b s
 pattern RowMajToL as <- (lToRowMaj -> as) where RowMajToL = rowMajToL
 {-# complete RowMajToL #-}
-
-pattern LToRowMaj :: (V a, ToRowMajor b, Additive s) => L a b s -> Rows a b s
-pattern LToRowMaj m <- (rowMajToL -> m) where LToRowMaj = lToRowMaj
-{-# complete LToRowMaj :: () #-} -- see LToRow comment
 
 instance ToRowMajor Par1 where
   rowMajToL (Par1 a) = rowToL a
