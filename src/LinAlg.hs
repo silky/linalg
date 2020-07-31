@@ -175,18 +175,18 @@ instance (V f, Semiring s) => Semiring (L f f s) where
 
 -- Binary injections
 
-inl :: (V2 a b, Semiring s) => L a (a :*: b) s 
+inl :: (V2 a b, Semiring s) => L a (a :*: b) s
 inl = idL :& zero
 
-inr :: (V2 a b, Semiring s) => L b (a :*: b) s 
+inr :: (V2 a b, Semiring s) => L b (a :*: b) s
 inr = zero :& idL
 
 -- Binary projections
 
-exl :: (V2 a b, Semiring s) => L (a :*: b) a s 
+exl :: (V2 a b, Semiring s) => L (a :*: b) a s
 exl = idL :| zero
 
-exr :: (V2 a b, Semiring s) => L (a :*: b) b s 
+exr :: (V2 a b, Semiring s) => L (a :*: b) b s
 exr = zero :| idL
 
 -- Note that idL == inl :| inr == exl :& exr.
