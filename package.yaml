@@ -13,7 +13,7 @@ default-extensions:
   # - DeriveFunctor
   - FlexibleContexts
   - FlexibleInstances
-  # - FunctionalDependencies
+  - FunctionalDependencies
   - GADTs
   # - GeneralizedNewtypeDeriving
   # - LambdaCase
