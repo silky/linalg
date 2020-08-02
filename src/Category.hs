@@ -108,8 +108,9 @@ class (Representable r, ComonoidalR k r) => CocartesianR k r where
   ins :: r (a `k` (Rep r :* a))
   jams :: (Rep r :* a) `k` a
 
--- Conal: I think (Repr r :*) is the right choice for n-ary sums.
--- See how it works out.
+-- Conal: Is Repr r :* the right choice for n-ary coproducts? See how it works
+-- out. No. For linear maps (and thus for their representations), we'll want r a
+-- instead, with jams = sum and one-hot ins.
 
 -- Couldn't match type ‘Rep r0’ with ‘Rep r’
 -- Expected type: k (Rep r :* a) a
