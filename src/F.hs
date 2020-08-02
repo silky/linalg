@@ -28,6 +28,8 @@ instance Cartesian (F s) (:*:) where
   exr = F (\ (_ :*: b) -> b)
   dup = F (\ a -> a :*: a)
 
+instance Comonoidal (F s) (:*:) where (+++) = (***)
+
 instance Additive s => Cocartesian (F s) (:*:) where
   inl = F (\ a -> a :*: zeros)
   inr = F (\ b -> zeros :*: b)
