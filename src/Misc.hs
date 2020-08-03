@@ -51,20 +51,20 @@ class Additive a => Semiring a where
   one :: a
   (*) :: a -> a -> a
 
+instance Additive Double where { zero = 0; (+) = (P.+) }
+instance Semiring Double where { one  = 1; (*) = (P.*) }
+
 sum :: (Foldable f, Additive a) => f a -> a
 sum = foldr (+) zero
 
 -- Zero vector
-zeros :: (Representable a, Additive s) => a s
-zeros = pureRep zero
+zeroV :: (Representable a, Additive s) => a s
+zeroV = pureRep zero
 
 -- | Vector addition
 infixl 6 +^
 (+^) :: (Representable f, Additive s) => f s -> f s -> f s
 (+^) = liftR2 (+)
-
-instance Additive Double where { zero = 0; (+) = (P.+) }
-instance Semiring Double where { one  = 1; (*) = (P.*) }
 
 -- Miscellany
 

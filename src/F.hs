@@ -31,25 +31,6 @@ instance Cartesian (F s) (:*:) where
 instance Comonoidal (F s) (:*:) where (+++) = (***)
 
 instance Additive s => Cocartesian (F s) (:*:) where
-  inl = F (\ a -> a :*: zeros)
-  inr = F (\ b -> zeros :*: b)
+  inl = F (\ a -> a :*: zeroV)
+  inr = F (\ b -> zeroV :*: b)
   jam = F (\ (a :*: b) -> a +^ b)
-
-#if 0
-
-instance Representable p => MonoidalRep (F s) p where
-  -- exs = tabulate (\ i -> F (\ a -> a `index` i))
-  --     = tabulate (\ i -> F (`index` i))
-  --     = tabulate (\ i -> F (flip index i))
-  --     = tabulate (F . flip index)
-
--- Error:
--- 
---   Expected kind ‘* -> * -> *’,
---     but ‘F s’ has kind ‘(* -> *) -> (* -> *) -> *’
---   In the first argument of ‘MonoidalRep’, namely ‘(F s)’
---   In the instance declaration for ‘MonoidalRep (F s) p’
--- 
--- See notes following MonoidalRep in Category.hs.
-
-#endif
