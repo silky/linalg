@@ -4,8 +4,13 @@ github:              "conal/linalg"
 
 description:         Please see the README on GitHub at <https://github.com/conal/linalg>
 
+# Common language extensions defining the default language for the project.
+# Un-comment each extension the first time it's used in a module.
+# UndecidableInstances and AllowAmbiguousTypes instead go in the modules with
+# a corresponding GHC error comment right after the code that generates the
+# warning. See LinAlg for an example.
+
 default-extensions:
-  # - AllowAmbiguousTypes
   - CPP
   - ConstraintKinds
   # - DefaultSignatures
@@ -26,11 +31,9 @@ default-extensions:
   - TypeApplications
   - TypeFamilies
   - TypeOperators
-  # - UndecidableInstances
   - ViewPatterns
   # - ScopedTypeVariables
   - KindSignatures
-  # - NoStarIsType
   - TypeSynonymInstances
   - PolyKinds
 
