@@ -57,6 +57,9 @@ instance Semiring Double where { one  = 1; (*) = (P.*) }
 sum :: (Foldable f, Additive a) => f a -> a
 sum = foldr (+) zero
 
+-- To do: maybe replace `foldr` by `foldl` or `foldl'`. Does a strict left fold
+-- help at all, considering that our "vectors" aren't flat?
+
 -- Zero vector
 zeroV :: (Representable a, Additive s) => a s
 zeroV = pureRep zero
