@@ -10,7 +10,6 @@ import qualified Prelude as P
 import Prelude hiding (id,(.))
 import GHC.Types (Constraint)
 import qualified Control.Arrow as A
--- import qualified Data.Tuple as T
 import Data.Functor.Rep
 
 import Misc
@@ -36,21 +35,40 @@ class Category k => Monoidal k p | k -> p where
   infixr 3 ***
   (***) :: (a `k` c) -> (b `k` d) -> ((a `p` b) `k` (c `p` d))
 
--- Should we require p to be uniquely determined by k? Might help type
--- inference. We'd then need a "Comonoidal" class with "(+++)", which is
--- perhaps better.
+-- The functional dependency requires p to be uniquely determined by k. Might
+-- help type inference. Necessitates a "Comonoidal" class with "(+++)", which is
+-- perhaps better than giving two Monoidal instances for a single category (eg
+-- for (->)).
 
 class Monoidal k p => Cartesian k p where
   exl :: Obj2 k a b => (a `p` b) `k` a
   exr :: Obj2 k a b => (a `p` b) `k` b
   dup :: Obj  k a   => a `k` (a `p` a)
 
+-- Binary fork
 infixr 3 &&&
 (&&&) :: (Cartesian k p, Obj3 k a c d)
       => (a `k` c) -> (a `k` d) -> (a `k` (c `p` d))
 f &&& g = (f *** g) . dup
 
 -- Can I instead extract the Obj constraints from f and g?
+
+-- Inverse of uncurry (&&&)
+unfork2 :: (Cartesian k p, Obj2 k c d)
+        => (a `k` (c `p` d)) -> ((a `k` c) :* (a `k` d))
+unfork2 f = (exl . f , exr . f)
+
+pattern (:&) :: (Cartesian k p, Obj3 k a c d)
+             => (a `k` c) -> (a `k` d) -> (a `k` (c `p` d))
+pattern f :& g <- (unfork2 -> (f,g)) where (:&) = (&&&)
+-- {-# complete (:&) #-}
+
+-- GHC error:
+-- 
+--   A type signature must be provided for a set of polymorphic pattern synonyms.
+--   In {-# complete :& #-}
+--
+-- Given the generality of (:&), is there any solution to this completeness issue?
 
 class Category k => Comonoidal k co | k -> co where
   infixr 2 +++
@@ -64,10 +82,20 @@ class Comonoidal k co => Cocartesian k co where
   inr :: Obj2 k a b => b `k` (a `co` b)
   jam :: Obj  k a   => (a `co` a) `k` a
 
+-- Binary join
 infixr 2 |||
 (|||) :: (Cocartesian k co, Obj3 k a b c)
       => (a `k` c) -> (b `k` c) -> ((a `co` b) `k` c)
 f ||| g = jam . (f +++ g)
+
+-- Inverse of uncurry (|||)
+unjoin2 :: (Cocartesian k co, Obj2 k a b) => ((a `co` b) `k` c) -> ((a `k` c) :* (b `k` c))
+unjoin2 f = (f . inl , f . inr)
+
+pattern (:|) :: (Cocartesian k co, Obj3 k a b c)
+             => (a `k` c) -> (b `k` c) -> ((a `co` b) `k` c)
+pattern f :| g <- (unjoin2 -> (f,g)) where (:|) = (|||)
+-- {-# complete (:|) #-}  -- See (:&) above
 
 
 -- -- N-ary (representable) counterparts
