@@ -10,12 +10,13 @@ import qualified Prelude as P
 import Prelude hiding (id,(.))
 import GHC.Types (Constraint)
 import qualified Control.Arrow as A
+import GHC.Generics ((:.:)(..))
 import Data.Functor.Rep
 
 import Misc
 
-class    Yes1 a
-instance Yes1 a
+class    Unconstrained a
+instance Unconstrained a
 
 class Category (k :: u -> u -> *) where
   type Obj k :: u -> Constraint
@@ -68,7 +69,7 @@ pattern f :& g <- (unfork2 -> (f,g)) where (:&) = (&&&)
 --   A type signature must be provided for a set of polymorphic pattern synonyms.
 --   In {-# complete :& #-}
 --
--- Given the generality of (:&), is there any solution to this completeness issue?
+-- Instead, give a typed COMPLETE pragma with each cartesian category instance.
 
 class Category k => Comonoidal k co | k -> co where
   infixr 2 +++
@@ -98,36 +99,22 @@ pattern f :| g <- (unjoin2 -> (f,g)) where (:|) = (|||)
 -- {-# complete (:|) #-}  -- See (:&) above
 
 
--- -- N-ary (representable) counterparts
+-- -- N-ary (representable) counterparts.
+
+-- Assumes functor categories. To do: look for a clean, poly-kinded alternative.
+-- I guess we could generalize from functor composition and functor application.
 
 class (Category k, Representable r) => MonoidalR k r where
-  cross :: r (a `k` b) -> (r a `k` r b)
-
--- TODO: maybe "N" (for n-ary) instead of "R" (for representable) in these
--- class names. On the other hand, people will probably assume n is a number.
-
--- TODO: keep Representable r superclass constraint?
-
--- Oops! The type r (a `k` b) requires r :: * -> *, hence r a :: *, a :: *.
--- The Representable constraint does as well.
---
---   λ> :k Monoidal
---   Monoidal :: (u -> u -> *) -> (u -> u -> u) -> Constraint
---   λ> :k MonoidalR
---   MonoidalR :: (* -> * -> *) -> (* -> *) -> Constraint
---
--- For L, we have
--- 
---   cross :: (...) => c (L a b s) -> L (c :.: a) (c :.: b) s
---
--- What generalization are we after here?
+  cross :: r (a `k` b) -> ((r :.: a) `k` (r :.: b))
 
 class MonoidalR k r => CartesianR k r where
-  exs :: r (r a `k` a)
-  dups :: a `k` r a
+  exs :: r ((r :.: a) `k` a)
+  dups :: a `k` (r :.: a)
 
-fork :: (CartesianR k r, Obj2 k a c) => r (a `k` c) -> (a `k` r c)
+fork :: (CartesianR k r, Obj2 k a c) => r (a `k` c) -> (a `k` (r :.: c))
 fork fs = cross fs . dups
+
+#if 0
 
 class (Category k, Representable r) => ComonoidalR k r where
   plus :: r (a `k` b) -> ((Rep r :* a) `k` (Rep r :* b))
@@ -148,10 +135,17 @@ class (Representable r, ComonoidalR k r) => CocartesianR k r where
 -- In the ambiguity check for ‘jams’
 -- To defer the ambiguity check to use sites, enable AllowAmbiguousTypes
 
+#endif
+
+-- Try specializing to bifunctor categories instead. Reconsider naming.
+class CartesianR k r => BifunctorR k r where
+  ins :: r (a `k` (r :.: a))
+  jams :: (r :.: a) `k` a
+
 -- -- Instances
 
 instance Category (->) where
-  type Obj (->) = Yes1
+  type Obj (->) = Unconstrained
   id = P.id
   (.) = (P..)
 
@@ -174,6 +168,10 @@ instance Cocartesian (->) (:+) where
   -- jam (Left  a) = a
   -- jam (Right a) = a
 
+#if 0
+
+-- These instances are broken now that MonoidalR etc assumes functor categories.
+
 instance Representable p => MonoidalR (->) p where
   cross = liftR2 ($)
 
@@ -187,3 +185,5 @@ instance Representable p => ComonoidalR (->) p where
 instance Representable p => CocartesianR (->) p where
   ins = tabulate (,)  -- = tabulate (\ i a -> (i, a))
   jams = snd
+
+#endif
