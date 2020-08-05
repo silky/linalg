@@ -79,5 +79,6 @@ oneHot :: (C2 Representable r a, Eq (Rep r), Additive s) => Rep r -> a s -> (r :
 oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
 
 instance Semiring s => Linear s F (:*:) where
-  scale s = F (\ (Par1 s') -> Par1 (s * s'))
+  scale s = F (fmap (s *))
+            -- F (\ (Par1 s') -> Par1 (s * s'))
   F f @@ a = f a
