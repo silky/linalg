@@ -281,7 +281,7 @@ scaleV s = rowMajToL (diagRep zero (pureRep s))
 
 -- Prove V/Obj constraints from morphisms
 isV :: L a b s -> Dict (V2 a b)
-isV (Scale s) = Dict
+isV (Scale _) = Dict
 isV (_ :|# _) = Dict
 isV (_ :&# _) = Dict
 isV (JoinL _) = Dict
