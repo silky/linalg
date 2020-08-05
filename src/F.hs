@@ -83,7 +83,11 @@ class Linear l where
   -- every operation on every representation is specified by requiring that mu
   -- is homomorphic for (distributes over) that operation. For instance, mu must
   -- be a functor (Category homomorphism).
-  mu :: l s a b -> F s a b
+  mu  :: l s a b -> F s a b
+  -- | Inverse of mu
+  mu' :: F s a b -> l s a b
 
 -- Trivial instance
-instance Linear F where mu = id
+instance Linear F where
+  mu  = id
+  mu' = id
