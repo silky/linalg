@@ -188,6 +188,5 @@ unjoin f = (f .) <$> ins
 
 -- TODO: Abelian
 
-class (Biproduct (l s) p, BiproductR (l s)) => Linear s l p where
+class (Biproduct (l s) p, BiproductR (l s)) => Scalable s l p where
   scale :: s -> l s Par1 Par1
-  at :: l s a b -> a s -> b s  -- linear

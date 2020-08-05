@@ -39,29 +39,26 @@ instance Additive s => Cocartesian (F s) (:*:) where
 
 instance Additive s => Biproduct (F s) (:*:)
 
-instance Semiring s => MonoidalR (F s) where
+instance Additive s => MonoidalR (F s) where
   cross :: Representable r => r (F s a b) -> F s (r :.: a) (r :.: b)
-  cross fs = F (Comp1 . liftR2 at fs . unComp1)
-
--- The Semiring s constraint here comes from at being in the same class as
--- scale.
+  cross fs = F (Comp1 . liftR2 unF fs . unComp1)
 
 #if 0
-                    fs :: r (F s a b)
-        liftR2 at fs :: r (a s) -> r (b s)
-Comp1 . liftR2 at fs . unComp1 :: (r :.: a) s -> (r :.: b) s
+                   fs :: r (F s a b)
+        liftR2 unF fs :: r (a s) -> r (b s)
+Comp1 . liftR2 unF fs . unComp1 :: (r :.: a) s -> (r :.: b) s
 
-cross = F . inNew (liftR2 at)
+cross = F . inNew (liftR2 unF)
 #endif
 
-instance Semiring s => CartesianR (F s) where
+instance Additive s => CartesianR (F s) where
   exs :: Representable r => r (F s (r :.: a) a)
   exs = tabulate (\ i -> F (\ (Comp1 as) -> as `index` i))
   dups :: Representable r => F s a (r :.: a)
   dups = F (\ a -> Comp1 (pureRep a))
          -- F (Comp1 . pureRep)
 
-instance Semiring s => BiproductR (F s) where
+instance Additive s => BiproductR (F s) where
   ins :: (C2 Representable r a, Eq (Rep r)) => r (F s a (r :.: a))
   ins = tabulate (F . oneHot)
         -- tabulate $ \ i -> F (oneHot i)
@@ -78,13 +75,15 @@ oneHot :: (C2 Representable r a, Eq (Rep r), Additive s)
        => Rep r -> a s -> (r :.: a) s
 oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
 
-instance Semiring s => Linear s F (:*:) where
+instance Semiring s => Scalable s F (:*:) where
   scale s = F (fmap (s *))   -- F (\ (Par1 s') -> Par1 (s * s'))
-  at = unF
 
--- | Semantic function for all linear map representations. Correctness of every
--- operation on every representation is specified by requiring that mu is
--- homomorphic for that operation. For instance, mu must be a functor (Category
--- homomorphism).
-mu :: Linear s l p => l s a b -> F s a b
-mu = F . at
+class Linear l where
+  -- | Semantic function for all linear map representations. Correctness of
+  -- every operation on every representation is specified by requiring that mu
+  -- is homomorphic for (distributes over) that operation. For instance, mu must
+  -- be a functor (Category homomorphism).
+  mu :: l s a b -> F s a b
+
+-- Trivial instance
+instance Linear F where mu = id
