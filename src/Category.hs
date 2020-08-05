@@ -98,7 +98,8 @@ infixr 2 |||
 f ||| g = jam . (f +++ g)
 
 -- Inverse of uncurry (|||)
-unjoin2 :: (Cocartesian k co, Obj2 k a b) => ((a `co` b) `k` c) -> ((a `k` c) :* (b `k` c))
+unjoin2 :: (Cocartesian k co, Obj2 k a b)
+        => ((a `co` b) `k` c) -> ((a `k` c) :* (b `k` c))
 unjoin2 f = (f . inl , f . inr)
 
 -- TODO: How can we know that uncurry (|||) and unjoin2 form an isomorphism?
@@ -156,7 +157,8 @@ class MonoidalR k => CartesianR k where
   exs :: Representable r => r ((r :.: a) `k` a)
   dups :: Representable r => a `k` (r :.: a)
 
-fork :: (CartesianR k, Obj2 k a c, Representable r) => r (a `k` c) -> (a `k` (r :.: c))
+fork :: (CartesianR k, Obj2 k a c, Representable r)
+     => r (a `k` c) -> (a `k` (r :.: c))
 fork fs = cross fs . dups
 
 unfork :: (CartesianR k, Representable r) => a `k` (r :.: b) -> r (a `k` b)
@@ -172,7 +174,8 @@ class CartesianR k => BiproductR k where
 -- TODO: Maybe replace (Representable r, Eq (Rep r), Foldable r) with an
 -- associated functor constraint.
 
-join :: (BiproductR k, Representable r, Foldable r, Obj2 k a b) => r (a `k` b) -> (r :.: a) `k` b
+join :: (BiproductR k, Representable r, Foldable r, Obj2 k a b)
+     => r (a `k` b) -> (r :.: a) `k` b
 join fs = jams . cross fs  -- note cross == plus
 
 unjoin :: (BiproductR k, Obj2 k a b, Representable r, Eq (Rep r))
