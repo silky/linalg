@@ -39,11 +39,8 @@ instance Additive s => Cocartesian (F s) (:*:) where
 
 instance Additive s => Biproduct (F s) (:*:)
 
--- class (Category k, Representable r) => MonoidalR k r where
---   cross :: r (a `k` b) -> ((r :.: a) `k` (r :.: b))
-
-instance (Semiring s) => MonoidalR (F s) where
-  cross :: Representable r => r (F s a b) -> (F s (r :.: a) (r :.: b))
+instance Semiring s => MonoidalR (F s) where
+  cross :: Representable r => r (F s a b) -> F s (r :.: a) (r :.: b)
   cross fs = F (Comp1 . liftR2 (@@) fs . unComp1)
 
 -- The Semiring s constraint here comes from (@@) being in the same class as
@@ -53,6 +50,8 @@ instance (Semiring s) => MonoidalR (F s) where
                     fs :: r (F s a b)
         liftR2 (@@) fs :: r (a s) -> r (b s)
 Comp1 . liftR2 (@@) fs . unComp1 :: (r :.: a) s -> (r :.: b) s
+
+cross = F . inNew (liftR2 (@@))
 #endif
 
 instance Semiring s => CartesianR (F s) where
@@ -75,10 +74,10 @@ instance Semiring s => BiproductR (F s) where
 -- Illegal nested constraint ‘Eq (Rep r)’
 -- (Use UndecidableInstances to permit this)
 
-oneHot :: (C2 Representable r a, Eq (Rep r), Additive s) => Rep r -> a s -> (r :.: a) s
+oneHot :: (C2 Representable r a, Eq (Rep r), Additive s)
+       => Rep r -> a s -> (r :.: a) s
 oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
 
 instance Semiring s => Linear s F (:*:) where
-  scale s = F (fmap (s *))
-            -- F (\ (Par1 s') -> Par1 (s * s'))
+  scale s = F (fmap (s *))   -- F (\ (Par1 s') -> Par1 (s * s'))
   (@@) = unF
