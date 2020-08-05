@@ -146,33 +146,37 @@ instance Cocartesian (->) (:+) where
 -- Assumes functor categories. To do: look for a clean, poly-kinded alternative.
 -- I guess we could generalize from functor composition and functor application.
 
-class (Category k, Representable r) => MonoidalR k r where
-  cross :: r (a `k` b) -> ((r :.: a) `k` (r :.: b))
+class Category k => MonoidalR k where
+  cross :: Representable r => r (a `k` b) -> ((r :.: a) `k` (r :.: b))
 
 -- TODO: maybe wire in p = (:*:) for Monoidal, since we're doing essentially the
 -- same for MonoidalR by choosing Representable r and (:.:).
 
-class MonoidalR k r => CartesianR k r where
-  exs :: r ((r :.: a) `k` a)
-  dups :: a `k` (r :.: a)
+class MonoidalR k => CartesianR k where
+  exs :: Representable r => r ((r :.: a) `k` a)
+  dups :: Representable r => a `k` (r :.: a)
 
-fork :: (CartesianR k r, Obj2 k a c) => r (a `k` c) -> (a `k` (r :.: c))
+fork :: (CartesianR k, Obj2 k a c, Representable r) => r (a `k` c) -> (a `k` (r :.: c))
 fork fs = cross fs . dups
 
-unfork :: CartesianR k r => a `k` (r :.: b) -> r (a `k` b)
+unfork :: (CartesianR k, Representable r) => a `k` (r :.: b) -> r (a `k` b)
 unfork f = (. f) <$> exs
 
 -- TODO: How can we know that fork and unfork form an isomorphism?
 
 -- N-ary biproducts
-class CartesianR k r => BiproductR k r where
-  ins :: Obj k a => r (a `k` (r :.: a))
-  jams :: Obj k a => (r :.: a) `k` a
+class CartesianR k => BiproductR k where
+  ins  :: (Representable r, Eq (Rep r), Obj k a) => r (a `k` (r :.: a))
+  jams :: (Representable r, Foldable r, Obj k a) => (r :.: a) `k` a
 
-join :: (BiproductR k r, Obj2 k a b) => r (a `k` b) -> (r :.: a) `k` b
+-- TODO: Maybe replace (Representable r, Eq (Rep r), Foldable r) with an
+-- associated functor constraint.
+
+join :: (BiproductR k, Representable r, Foldable r, Obj2 k a b) => r (a `k` b) -> (r :.: a) `k` b
 join fs = jams . cross fs  -- note cross == plus
 
-unjoin :: (BiproductR k r, Obj2 k a b) => (r :.: a) `k` b -> r (a `k` b)
+unjoin :: (BiproductR k, Obj2 k a b, Representable r, Eq (Rep r))
+       => (r :.: a) `k` b -> r (a `k` b)
 unjoin f = (f .) <$> ins
 
 -- TODO: Add fork & unfork to CartesianR with the current definitions as
@@ -181,7 +185,7 @@ unjoin f = (f .) <$> ins
 
 -- TODO: Abelian
 
-class (Biproduct (l s) p, BiproductR (l s) Par1) => Linear s l p where
+class (Biproduct (l s) p, BiproductR (l s)) => Linear s l p where
   scale :: s -> l s Par1 Par1
   infixl 9 @@  -- Linear application
   (@@) :: l s a b -> a s -> b s  -- linear

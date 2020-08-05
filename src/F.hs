@@ -6,9 +6,9 @@
 
 module F where
 
-import Prelude hiding (id,(.),sum)
+import Prelude hiding (id,(.),(+),(*),sum)
 
-import GHC.Generics ((:*:)(..),(:.:)(..))
+import GHC.Generics (Par1(..),(:*:)(..),(:.:)(..))
 import Data.Functor.Rep
 
 import Misc
@@ -21,10 +21,6 @@ instance Category (F s) where
   type Obj (F s) = Representable 
   id = F id
   F g . F f = F (g . f)
-
-infixl 9 @@
-(@@) :: F s a b -> (a s -> b s)
-F f @@ a = f a
 
 instance Monoidal (F s) (:*:) where
   F f *** F g = F (\ (a :*: b) -> f a :*: g b)
@@ -46,9 +42,12 @@ instance Additive s => Biproduct (F s) (:*:)
 -- class (Category k, Representable r) => MonoidalR k r where
 --   cross :: r (a `k` b) -> ((r :.: a) `k` (r :.: b))
 
-instance Representable r => MonoidalR (F s) r where
-  cross :: r (F s a b) -> (F s (r :.: a) (r :.: b))
+instance (Semiring s) => MonoidalR (F s) where
+  cross :: Representable r => r (F s a b) -> (F s (r :.: a) (r :.: b))
   cross fs = F (Comp1 . liftR2 (@@) fs . unComp1)
+
+-- The Semiring s constraint here comes from (@@) being in the same class as
+-- scale.
 
 #if 0
                     fs :: r (F s a b)
@@ -56,20 +55,19 @@ instance Representable r => MonoidalR (F s) r where
 Comp1 . liftR2 (@@) fs . unComp1 :: (r :.: a) s -> (r :.: b) s
 #endif
 
-instance Representable r => CartesianR (F s) r where
-  exs :: r (F s (r :.: a) a)
+instance Semiring s => CartesianR (F s) where
+  exs :: Representable r => r (F s (r :.: a) a)
   exs = tabulate (\ i -> F (\ (Comp1 as) -> as `index` i))
-  dups :: F s a (r :.: a)
+  dups :: Representable r => F s a (r :.: a)
   dups = F (\ a -> Comp1 (pureRep a))
          -- F (Comp1 . pureRep)
 
-instance (Representable r, Foldable r, Eq (Rep r), Additive s)
-      => BiproductR (F s) r where
-  ins :: Representable a => r (F s a (r :.: a))
+instance Semiring s => BiproductR (F s) where
+  ins :: (C2 Representable r a, Eq (Rep r)) => r (F s a (r :.: a))
   ins = tabulate (F . oneHot)
         -- tabulate $ \ i -> F (oneHot i)
         -- tabulate $ \ i -> F (\ a -> oneHot i a)
-  jams :: Representable a => F s (r :.: a) a
+  jams :: (C2 Representable r a, Foldable r) => F s (r :.: a) a
   jams = F (\ (Comp1 as) -> foldr (+^) zeroV as)
 
 -- TODO: can we define ins without Eq (Rep r)?
@@ -80,7 +78,6 @@ instance (Representable r, Foldable r, Eq (Rep r), Additive s)
 oneHot :: (C2 Representable r a, Eq (Rep r), Additive s) => Rep r -> a s -> (r :.: a) s
 oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
 
--- Circular with ins
-unjoin' :: (C2 Representable r a, Foldable r, Eq (Rep r), Additive s)
-        => F s (r :.: a) c -> r (F s a c)
-unjoin' f = (f .) <$> ins
+instance Semiring s => Linear s F (:*:) where
+  scale s = F (\ (Par1 s') -> Par1 (s * s'))
+  F f @@ a = f a
