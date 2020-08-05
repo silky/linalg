@@ -289,4 +289,12 @@ isV (ForkL _) = Dict
 
 infixr 9 @.@
 (@.@) :: Semiring s => L b c s -> L a b s -> L a c s
-b @.@ a | (Dict, Dict) <- (isV a, isV b) = b .@ a
+-- b @.@ a | (Dict, Dict) <- (isV a, isV b) = b .@ a
+
+-- b@(isV -> Dict) @.@ a@(isV -> Dict) = b .@ a
+
+pattern IsV :: () => V2 a b => L a b s
+pattern IsV <- (isV -> Dict)
+{-# COMPLETE IsV :: L #-}
+
+b@IsV @.@ a@IsV = b .@ a
