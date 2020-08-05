@@ -45,6 +45,7 @@ library:
   dependencies:
     - base
     - ghc-prim  # GHC.Types (Constraint)
+    - constraints  # Experiment
     - distributive
     - adjunctions
   other-modules: []

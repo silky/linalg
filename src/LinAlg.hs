@@ -13,6 +13,9 @@ import qualified Control.Arrow as A
 import Data.Distributive
 import Data.Functor.Rep
 
+-- Experiment
+import Data.Constraint (Dict(..))
+
 import Misc
 
 type V f = ((Representable f, Foldable f, Eq (Rep f), ToScalar f, ToRowMajor f)
@@ -24,8 +27,12 @@ type V4 f g h k = (V2 f g, V2 h k)
 -- TODO: Why does V suddenly need ":: Constraint" after adding ToScalar f and
 -- ToRowMajor f?
 
-type V3f f g h = (V2 f g, Representable h)  -- for n-ary forks
-type V3j f g h = (V3f f g h, Foldable h)    -- for n-ary joins
+-- type V3f f g h = (V2 f g, Representable h)  -- for n-ary forks
+-- type V3j f g h = (V3f f g h, Foldable h)    -- for n-ary joins
+
+-- For the isV experiment below, I need more.
+type V3f f g h = V3 f g h  -- for n-ary forks
+type V3j f g h = V3 f g h  -- for n-ary joins
 
 infixr 3 :&#
 infixr 2 :|#
@@ -268,3 +275,14 @@ zeroL = rowMajToL (pureRep (pureRep zero))
 -- Vector scaling
 scaleV :: (V a, Additive s) => s -> L a a s
 scaleV s = rowMajToL (diagRep zero (pureRep s))
+
+
+-- -- Experiment
+
+-- Prove V/Obj constraints from morphisms
+isV :: L a b s -> Dict (V2 a b)
+isV (Scale s) = Dict
+isV (_ :|# _) = Dict
+isV (_ :&# _) = Dict
+isV (JoinL _) = Dict
+isV (ForkL _) = Dict
