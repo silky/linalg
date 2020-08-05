@@ -81,4 +81,4 @@ oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
 instance Semiring s => Linear s F (:*:) where
   scale s = F (fmap (s *))
             -- F (\ (Par1 s') -> Par1 (s * s'))
-  F f @@ a = f a
+  (@@) = unF
