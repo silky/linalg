@@ -81,3 +81,10 @@ oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
 instance Semiring s => Linear s F (:*:) where
   scale s = F (fmap (s *))   -- F (\ (Par1 s') -> Par1 (s * s'))
   at = unF
+
+-- | Semantic function for all linear map representations. Correctness of every
+-- operation on every representation is specified by requiring that mu is
+-- homomorphic for that operation. For instance, mu must be a functor (Category
+-- homomorphism).
+mu :: Linear s l p => l s a b -> F s a b
+mu = F . at
