@@ -10,7 +10,7 @@ import qualified Prelude as P
 import Prelude hiding (id,(.))
 import GHC.Types (Constraint)
 import qualified Control.Arrow as A
-import GHC.Generics ((:.:)(..))
+import GHC.Generics (Par1,(:.:)(..))
 import Data.Functor.Rep
 
 import Misc
@@ -32,6 +32,9 @@ type Obj4 k a b c d     = C4 (Obj k) a b c d
 type Obj5 k a b c d e   = C5 (Obj k) a b c d e
 type Obj6 k a b c d e f = C6 (Obj k) a b c d e f
 
+-- TODO: Maybe eliminate all type definitions based on Obj2 .. Obj6 in favor of
+-- their definitions, which are not much longer anyway.
+
 class Category k => Monoidal k p | k -> p where
   infixr 3 ***
   (***) :: (a `k` c) -> (b `k` d) -> ((a `p` b) `k` (c `p` d))
@@ -40,6 +43,9 @@ class Category k => Monoidal k p | k -> p where
 -- help type inference. Necessitates a "Comonoidal" class with "(+++)", which is
 -- perhaps better than giving two Monoidal instances for a single category (eg
 -- for (->)).
+
+-- TODO: make p an associated type, and see how the class and instance
+-- definitions look in comparison.
 
 class Monoidal k p => Cartesian k p where
   exl :: Obj2 k a b => (a `p` b) `k` a
@@ -58,6 +64,8 @@ f &&& g = (f *** g) . dup
 unfork2 :: (Cartesian k p, Obj2 k c d)
         => (a `k` (c `p` d)) -> ((a `k` c) :* (a `k` d))
 unfork2 f = (exl . f , exr . f)
+
+-- TODO: How can we know that uncurry (&&&) and unfork2 form an isomorphism?
 
 pattern (:&) :: (Cartesian k p, Obj3 k a c d)
              => (a `k` c) -> (a `k` d) -> (a `k` (c `p` d))
@@ -93,54 +101,18 @@ f ||| g = jam . (f +++ g)
 unjoin2 :: (Cocartesian k co, Obj2 k a b) => ((a `co` b) `k` c) -> ((a `k` c) :* (b `k` c))
 unjoin2 f = (f . inl , f . inr)
 
+-- TODO: How can we know that uncurry (|||) and unjoin2 form an isomorphism?
+
 pattern (:|) :: (Cocartesian k co, Obj3 k a b c)
              => (a `k` c) -> (b `k` c) -> ((a `co` b) `k` c)
 pattern f :| g <- (unjoin2 -> (f,g)) where (:|) = (|||)
 -- {-# complete (:|) #-}  -- See (:&) above
 
+-- When products and coproducts coincide
+class (Cartesian k p, Cocartesian k p) => Biproduct k p
 
--- -- N-ary (representable) counterparts.
-
--- Assumes functor categories. To do: look for a clean, poly-kinded alternative.
--- I guess we could generalize from functor composition and functor application.
-
-class (Category k, Representable r) => MonoidalR k r where
-  cross :: r (a `k` b) -> ((r :.: a) `k` (r :.: b))
-
-class MonoidalR k r => CartesianR k r where
-  exs :: r ((r :.: a) `k` a)
-  dups :: a `k` (r :.: a)
-
-fork :: (CartesianR k r, Obj2 k a c) => r (a `k` c) -> (a `k` (r :.: c))
-fork fs = cross fs . dups
-
-#if 0
-
-class (Category k, Representable r) => ComonoidalR k r where
-  plus :: r (a `k` b) -> ((Rep r :* a) `k` (Rep r :* b))
-
-class (Representable r, ComonoidalR k r) => CocartesianR k r where
-  ins :: r (a `k` (Rep r :* a))
-  jams :: (Rep r :* a) `k` a
-
--- Conal: Is Repr r :* the right choice for n-ary coproducts? See how it works
--- out. No. For linear maps (and thus for their representations), we'll want r a
--- instead, with jams = sum and one-hot ins.
-
--- Couldn't match type ‘Rep r0’ with ‘Rep r’
--- Expected type: k (Rep r :* a) a
---   Actual type: k (Rep r0 :* a) a
--- NB: ‘Rep’ is a non-injective type family
--- The type variable ‘r0’ is ambiguous
--- In the ambiguity check for ‘jams’
--- To defer the ambiguity check to use sites, enable AllowAmbiguousTypes
-
-#endif
-
--- Try specializing to bifunctor categories instead. Reconsider naming.
-class CartesianR k r => BifunctorR k r where
-  ins :: r (a `k` (r :.: a))
-  jams :: (r :.: a) `k` a
+-- TODO: perhaps merge Cartesian and Cocartesian and rename "Biproduct".
+-- Ditto for the representable counterparts below.
 
 -- -- Instances
 
@@ -168,22 +140,48 @@ instance Cocartesian (->) (:+) where
   -- jam (Left  a) = a
   -- jam (Right a) = a
 
-#if 0
 
--- These instances are broken now that MonoidalR etc assumes functor categories.
+-- -- N-ary (representable) counterparts.
 
-instance Representable p => MonoidalR (->) p where
-  cross = liftR2 ($)
+-- Assumes functor categories. To do: look for a clean, poly-kinded alternative.
+-- I guess we could generalize from functor composition and functor application.
 
-instance Representable p => CartesianR (->) p where
-  exs = tabulate (flip index)
-  dups = pureRep
+class (Category k, Representable r) => MonoidalR k r where
+  cross :: r (a `k` b) -> ((r :.: a) `k` (r :.: b))
 
-instance Representable p => ComonoidalR (->) p where
-  plus fs (i,a) = (i, (fs `index` i) a)
+-- TODO: maybe wire in p = (:*:) for Monoidal, since we're doing essentially the
+-- same for MonoidalR by choosing Representable r and (:.:).
 
-instance Representable p => CocartesianR (->) p where
-  ins = tabulate (,)  -- = tabulate (\ i a -> (i, a))
-  jams = snd
+class MonoidalR k r => CartesianR k r where
+  exs :: r ((r :.: a) `k` a)
+  dups :: a `k` (r :.: a)
 
-#endif
+fork :: (CartesianR k r, Obj2 k a c) => r (a `k` c) -> (a `k` (r :.: c))
+fork fs = cross fs . dups
+
+unfork :: CartesianR k r => a `k` (r :.: b) -> r (a `k` b)
+unfork f = (. f) <$> exs
+
+-- TODO: How can we know that fork and unfork form an isomorphism?
+
+-- N-ary biproducts
+class CartesianR k r => BiproductR k r where
+  ins :: Obj k a => r (a `k` (r :.: a))
+  jams :: Obj k a => (r :.: a) `k` a
+
+join :: (BiproductR k r, Obj2 k a b) => r (a `k` b) -> (r :.: a) `k` b
+join fs = jams . cross fs  -- note cross == plus
+
+unjoin :: (BiproductR k r, Obj2 k a b) => (r :.: a) `k` b -> r (a `k` b)
+unjoin f = (f .) <$> ins
+
+-- TODO: Add fork & unfork to CartesianR with the current definitions as
+-- defaults and giving defaults for exs and dups in terms of fork and unfork.
+-- Ditto for ins/jams and join/unjoin. Use MINIMAL pragmas.
+
+-- TODO: Abelian
+
+class (Biproduct (l s) p, BiproductR (l s) Par1) => Linear s l p where
+  scale :: s -> l s Par1 Par1
+  infixl 9 @@  -- Linear application
+  (@@) :: l s a b -> a s -> b s  -- linear

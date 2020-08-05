@@ -21,11 +21,12 @@ default-extensions:
   - FunctionalDependencies
   - GADTs
   # - GeneralizedNewtypeDeriving
+  - InstanceSigs
   # - LambdaCase
   - MultiParamTypeClasses
   - PatternSynonyms
   # - QuantifiedConstraints
-  # - RankNTypes
+  - RankNTypes
   # - StandaloneDeriving
   # - TupleSections
   - TypeApplications

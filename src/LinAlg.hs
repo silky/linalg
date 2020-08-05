@@ -24,6 +24,9 @@ type V4 f g h k = (V2 f g, V2 h k)
 -- TODO: Why does V suddenly need ":: Constraint" after adding ToScalar f and
 -- ToRowMajor f?
 
+type V3f f g h = (V2 f g, Representable h)  -- for n-ary forks
+type V3j f g h = (V3f f g h, Foldable h)    -- for n-ary joins
+
 infixr 3 :&#
 infixr 2 :|#
 
@@ -33,8 +36,8 @@ data L :: (* -> *) -> (* -> *) -> (* -> *) where
   Scale :: s -> L Par1 Par1 s
   (:|#) :: V3 f g h => L f h s -> L g h s -> L (f :*: g) h s
   (:&#) :: V3 f h k => L f h s -> L f k s -> L f (h :*: k) s
-  JoinL :: V3 f g h => h (L f g s) -> L (h :.: f) g s
-  ForkL :: V3 f g h => h (L f g s) -> L f (h :.: g) s
+  JoinL :: V3j f g h => h (L f g s) -> L (h :.: f) g s
+  ForkL :: V3f f g h => h (L f g s) -> L f (h :.: g) s
 
 unjoin2 :: V3 f g h => L (f :*: g) h s -> L f h s :* L g h s
 unjoin2 (p :|# q) = (p,q)
@@ -70,7 +73,7 @@ pattern (:|) :: V3 f g h => L f h s -> L g h s -> L (f :*: g) h s
 pattern u :| v <- (unjoin2 -> (u,v)) where (:|) = (:|#)
 {-# complete (:|) #-}
 
-unforkL :: V3 f g h => L f (h :.: g) s -> h (L f g s)
+unforkL :: V3f f g h => L f (h :.: g) s -> h (L f g s)
 unforkL (p :|# q)  = liftR2 (:|#) (unforkL p) (unforkL q)
 unforkL (ForkL ms) = ms
 unforkL (JoinL ms) = JoinL <$> distribute (unforkL <$> ms)
@@ -94,16 +97,16 @@ liftR2 (:|#) (unforkL p) (unforkL p') :: h (L (f :*: f') g s)
 JoinL <$> distrib (unforkL <$> ms) :: h (L (k :.: f) g s)
 #endif
 
-unjoinL :: V3 f g h => L (h :.: f) g s -> h (L f g s)
+unjoinL :: V3f f g h => L (h :.: f) g s -> h (L f g s)
 unjoinL (p :&# p') = liftR2 (:&#) (unjoinL p) (unjoinL p')
 unjoinL (JoinL ms) = ms
 unjoinL (ForkL ms) = fmap ForkL (distribute (fmap unjoinL ms))
 
-pattern Fork :: V3 f g h => h (L f g s) -> L f (h :.: g) s
+pattern Fork :: V3f f g h => h (L f g s) -> L f (h :.: g) s
 pattern Fork ms <- (unforkL -> ms) where Fork = ForkL
 {-# complete Fork #-}
 
-pattern Join :: V3 f g h => h (L f g s) -> L (h :.: f) g s
+pattern Join :: V3j f g h => h (L f g s) -> L (h :.: f) g s
 pattern Join ms <- (unjoinL -> ms) where Join = JoinL
 {-# complete Join #-}
 

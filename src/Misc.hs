@@ -7,6 +7,7 @@ module Misc where
 import qualified Prelude as P
 import Prelude hiding ((+),sum,(*),unzip)
 import GHC.Types (Constraint)
+import GHC.Generics ((:*:)(..))
 
 import Data.Functor.Rep
 
@@ -51,8 +52,11 @@ class Additive a => Semiring a where
   one :: a
   (*) :: a -> a -> a
 
-instance Additive Double where { zero = 0; (+) = (P.+) }
-instance Semiring Double where { one  = 1; (*) = (P.*) }
+instance Additive Double where { zero = 0 ; (+) = (P.+) }
+instance Semiring Double where { one  = 1 ; (*) = (P.*) }
+
+instance Additive Bool where { zero = False ; (+) = (||) }
+instance Semiring Bool where { one  = True  ; (*) = (&&) }
 
 sum :: (Foldable f, Additive a) => f a -> a
 sum = foldr (+) zero
@@ -69,7 +73,29 @@ infixl 6 +^
 (+^) :: (Representable f, Additive s) => f s -> f s -> f s
 (+^) = liftR2 (+)
 
+-- GHC.Generics utilities
+
+-- Natural transformation
+infixl 1 -->
+type a --> b = forall s. a s -> b s
+
+exlF :: a :*: b --> a
+exlF (a :*: _) = a
+
+exrF :: a :*: b --> b
+exrF (_ :*: b) = b
+
+dupF :: a --> a :*: a
+dupF a = a :*: a
+
+curryF :: ((a :*: b) s -> c s) -> (a s -> b s -> c s)
+curryF f a b = f (a :*: b)
+
+uncurryF :: (a s -> b s -> c s) -> ((a :*: b) s -> c s)
+uncurryF g (a :*: b) = g a b
+
 -- Miscellany
 
 unzip :: Functor f => f (a :* b) -> f a :* f b
 unzip ps = (fst <$> ps, snd <$> ps)
+
