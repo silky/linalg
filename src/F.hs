@@ -8,7 +8,7 @@ module F where
 
 import Prelude hiding (id,(.),(+),(*),sum)
 
-import GHC.Generics (Par1(..),(:*:)(..),(:.:)(..))
+import GHC.Generics ((:*:)(..),(:.:)(..))
 import Data.Functor.Rep
 
 import Misc
@@ -41,17 +41,17 @@ instance Additive s => Biproduct (F s) (:*:)
 
 instance Semiring s => MonoidalR (F s) where
   cross :: Representable r => r (F s a b) -> F s (r :.: a) (r :.: b)
-  cross fs = F (Comp1 . liftR2 (@@) fs . unComp1)
+  cross fs = F (Comp1 . liftR2 at fs . unComp1)
 
--- The Semiring s constraint here comes from (@@) being in the same class as
+-- The Semiring s constraint here comes from at being in the same class as
 -- scale.
 
 #if 0
                     fs :: r (F s a b)
-        liftR2 (@@) fs :: r (a s) -> r (b s)
-Comp1 . liftR2 (@@) fs . unComp1 :: (r :.: a) s -> (r :.: b) s
+        liftR2 at fs :: r (a s) -> r (b s)
+Comp1 . liftR2 at fs . unComp1 :: (r :.: a) s -> (r :.: b) s
 
-cross = F . inNew (liftR2 (@@))
+cross = F . inNew (liftR2 at)
 #endif
 
 instance Semiring s => CartesianR (F s) where
@@ -80,4 +80,4 @@ oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
 
 instance Semiring s => Linear s F (:*:) where
   scale s = F (fmap (s *))   -- F (\ (Par1 s') -> Par1 (s * s'))
-  (@@) = unF
+  at = unF

@@ -190,5 +190,4 @@ unjoin f = (f .) <$> ins
 
 class (Biproduct (l s) p, BiproductR (l s)) => Linear s l p where
   scale :: s -> l s Par1 Par1
-  infixl 9 @@  -- Linear application
-  (@@) :: l s a b -> a s -> b s  -- linear
+  at :: l s a b -> a s -> b s  -- linear
