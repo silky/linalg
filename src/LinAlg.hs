@@ -286,3 +286,7 @@ isV (_ :|# _) = Dict
 isV (_ :&# _) = Dict
 isV (JoinL _) = Dict
 isV (ForkL _) = Dict
+
+infixr 9 @.@
+(@.@) :: Semiring s => L b c s -> L a b s -> L a c s
+b @.@ a | (Dict, Dict) <- (isV a, isV b) = b .@ a
