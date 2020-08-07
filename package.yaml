@@ -53,6 +53,6 @@ library:
   exposed-modules:
     - Misc
     - Category
-    - F
+    - LinearFunction
     - InductiveMatrix # coming
     - LinAlg          # going

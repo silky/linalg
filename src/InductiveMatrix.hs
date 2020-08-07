@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
-{- | "Inductive matrices", as in "Type Your Matrices for Great Good: A Haskell
+{- |
+"Inductive matrices", as in "Type Your Matrices for Great Good: A Haskell
 Library of Typed Matrices and Applications (Functional Pearl)" Armando Santos
-and José N Oliveira (Haskell Symposium 2020). [TODO: URL]
-The main differences:
+and José N Oliveira (Haskell Symposium 2020) [URL?]. The main differences:
 
 - Representable functors rather than their index types (logarithms).
 - Specified via denotational homomorphisms.
@@ -22,7 +22,7 @@ import Data.Functor.Rep
 
 import Misc
 import Category
-import F
+import LinearFunction
 
 -------------------------------------------------------------------------------
 -- | Representation and its denotation

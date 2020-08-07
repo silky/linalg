@@ -4,7 +4,7 @@
 -- | Linear functions, providing denotational specification for all linear map
 -- representations.
 
-module F where
+module LinearFunction where
 
 import Prelude hiding (id,(.),(+),(*),sum)
 
