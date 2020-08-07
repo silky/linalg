@@ -22,7 +22,8 @@ import Data.Functor.Rep
 
 import Misc
 import Category
-import LinearFunction
+import LinearFunction hiding (L)
+import qualified LinearFunction
 
 -------------------------------------------------------------------------------
 -- | Representation and its denotation

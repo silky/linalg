@@ -15,56 +15,56 @@ import Misc
 import Category
 
 -- | Linear functions
-newtype F (s :: *) a b = F { unF :: a s -> b s }
+newtype L (s :: *) a b = L { unF :: a s -> b s }
 
-instance Category (F s) where
-  type Obj' (F s) = Representable 
-  id = F id
-  F g . F f = F (g . f)
+instance Category (L s) where
+  type Obj' (L s) = Representable 
+  id = L id
+  L g . L f = L (g . f)
 
-instance Monoidal (F s) (:*:) where
-  F f *** F g = F (\ (a :*: b) -> f a :*: g b)
+instance Monoidal (L s) (:*:) where
+  L f *** L g = L (\ (a :*: b) -> f a :*: g b)
 
-instance Cartesian (F s) (:*:) where
-  exl = F exlF
-  exr = F exrF
-  dup = F dupF
+instance Cartesian (L s) (:*:) where
+  exl = L exlF
+  exr = L exrF
+  dup = L dupF
 
-instance Comonoidal (F s) (:*:) where (+++) = (***)
+instance Comonoidal (L s) (:*:) where (+++) = (***)
 
-instance Additive s => Cocartesian (F s) (:*:) where
-  inl = F (:*: zeroV)
-  inr = F (zeroV :*:)
-  jam = F (uncurryF (+^))
+instance Additive s => Cocartesian (L s) (:*:) where
+  inl = L (:*: zeroV)
+  inr = L (zeroV :*:)
+  jam = L (uncurryF (+^))
 
-instance Additive s => Biproduct (F s) (:*:)
+instance Additive s => Biproduct (L s) (:*:)
 
-instance MonoidalR (F s) where
-  cross :: Representable r => r (F s a b) -> F s (r :.: a) (r :.: b)
-  cross fs = F (Comp1 . liftR2 unF fs . unComp1)
+instance MonoidalR (L s) where
+  cross :: Representable r => r (L s a b) -> L s (r :.: a) (r :.: b)
+  cross fs = L (Comp1 . liftR2 unF fs . unComp1)
 
 #if 0
-                   fs :: r (F s a b)
+                   fs :: r (L s a b)
         liftR2 unF fs :: r (a s) -> r (b s)
 Comp1 . liftR2 unF fs . unComp1 :: (r :.: a) s -> (r :.: b) s
 
-cross = F . inNew (liftR2 unF)
+cross = L . inNew (liftR2 unF)
 #endif
 
-instance CartesianR (F s) where
-  exs :: Representable r => r (F s (r :.: a) a)
-  exs = tabulate (\ i -> F (\ (Comp1 as) -> as `index` i))
-  dups :: Representable r => F s a (r :.: a)
-  dups = F (\ a -> Comp1 (pureRep a))
-         -- F (Comp1 . pureRep)
+instance CartesianR (L s) where
+  exs :: Representable r => r (L s (r :.: a) a)
+  exs = tabulate (\ i -> L (\ (Comp1 as) -> as `index` i))
+  dups :: Representable r => L s a (r :.: a)
+  dups = L (\ a -> Comp1 (pureRep a))
+         -- L (Comp1 . pureRep)
 
-instance Additive s => BiproductR (F s) where
-  ins :: (C2 Representable r a, Eq (Rep r)) => r (F s a (r :.: a))
-  ins = tabulate (F . oneHot)
-        -- tabulate $ \ i -> F (oneHot i)
-        -- tabulate $ \ i -> F (\ a -> oneHot i a)
-  jams :: (C2 Representable r a, Foldable r) => F s (r :.: a) a
-  jams = F (\ (Comp1 as) -> foldr (+^) zeroV as)
+instance Additive s => BiproductR (L s) where
+  ins :: (C2 Representable r a, Eq (Rep r)) => r (L s a (r :.: a))
+  ins = tabulate (L . oneHot)
+        -- tabulate $ \ i -> L (oneHot i)
+        -- tabulate $ \ i -> L (\ a -> oneHot i a)
+  jams :: (C2 Representable r a, Foldable r) => L s (r :.: a) a
+  jams = L (\ (Comp1 as) -> foldr (+^) zeroV as)
 
 -- TODO: can we define ins without Eq (Rep r)?
 
@@ -78,19 +78,19 @@ oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
 class Scalable l where
   scale :: Semiring s => s -> l s Par1 Par1
 
-instance Scalable F where
-  scale s = F (fmap (s *))   -- F (\ (Par1 s') -> Par1 (s * s'))
+instance Scalable L where
+  scale s = L (fmap (s *))   -- L (\ (Par1 s') -> Par1 (s * s'))
 
 class LinearMap l where
   -- | Semantic function for all linear map representations. Correctness of
   -- every operation on every representation is specified by requiring that mu
   -- is homomorphic for (distributes over) that operation. For instance, mu must
   -- be a functor (Category homomorphism).
-  mu  :: l s a b -> F s a b
+  mu  :: l s a b -> L s a b
   -- | Inverse of mu
-  mu' :: F s a b -> l s a b
+  mu' :: L s a b -> l s a b
 
 -- Trivial instance
-instance LinearMap F where
+instance LinearMap L where
   mu  = id
   mu' = id
