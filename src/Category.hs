@@ -1,4 +1,8 @@
--- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
+{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE UndecidableInstances #-} -- see below
+{-# LANGUAGE UndecidableSuperClasses #-} -- see below
+
+{-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
 {-# LANGUAGE AllowAmbiguousTypes #-}   -- See below
 
@@ -18,13 +22,27 @@ import Misc
 class    Unconstrained a
 instance Unconstrained a
 
+-- https://github.com/conal/linalg/pull/28#issuecomment-670313952
+class    Obj' k a => Obj k a
+instance Obj' k a => Obj k a
+
+-- Illegal constraint ‘Obj' k a’ in a superclass context
+--   (Use UndecidableInstances to permit this)
+
+-- Potential superclass cycle for ‘Obj’
+--   one of whose superclass constraints is headed by a type family:
+--     ‘Obj' k a’
+-- Use UndecidableSuperClasses to accept this
+
 class Category (k :: u -> u -> *) where
-  type Obj k :: u -> Constraint
+  type Obj' k :: u -> Constraint
   infixr 9 .
   id :: Obj k a => a `k` a
-  (.) :: (b `k` c) -> (a `k` b) -> (a `k` c)
+  (.) :: Obj3 k a b c => (b `k` c) -> (a `k` b) -> (a `k` c)
 
--- Experiment: omit Obj constraints for argument arrows.
+-- TODO: does (.) really need these constraints? We may know better when we try
+-- "matrices" (non-inductive and inductive) with and without these (.)
+-- constraints. Similarly for other classes.
 
 type Obj2 k a b         = C2 (Obj k) a b
 type Obj3 k a b c       = C3 (Obj k) a b c
@@ -35,9 +53,13 @@ type Obj6 k a b c d e f = C6 (Obj k) a b c d e f
 -- TODO: Maybe eliminate all type definitions based on Obj2 .. Obj6 in favor of
 -- their definitions, which are not much longer anyway.
 
-class Category k => Monoidal k p | k -> p where
+-- Products of objects are objects.
+-- Seee https://github.com/conal/linalg/pull/28#issuecomment-670313952
+type ObjBin k p = ((forall a b. Obj2 k a b => Obj k (a `p` b)) :: Constraint)
+
+class (Category k, ObjBin k p) => Monoidal k p | k -> p where
   infixr 3 ***
-  (***) :: (a `k` c) -> (b `k` d) -> ((a `p` b) `k` (c `p` d))
+  (***) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `p` b) `k` (c `p` d))
 
 -- The functional dependency requires p to be uniquely determined by k. Might
 -- help type inference. Necessitates a "Comonoidal" class with "(+++)", which is
@@ -46,6 +68,22 @@ class Category k => Monoidal k p | k -> p where
 
 -- TODO: make p an associated type, and see how the class and instance
 -- definitions look in comparison.
+--
+-- @dwincort (https://github.com/conal/linalg/pull/28#discussion_r466989563):
+-- From what I can tell, if we use `QuantifiedConstraints` with `p`, then we
+-- can't turn it into an associated type. I'm not sure that's so bad, but it's
+-- worth noting.
+--
+-- TODO: keep poking at this question.
+
+-- TODO: Does it make any sense to move 'p' and its ObjBin into the method
+-- signatures, as in MonoidalR below? Should we instead move 'r' in MonoidalR
+-- from the method signatures to the class? It feels wrong to me (conal) that
+-- there is only one binary product but many n-ary. In other sense, n-ary is
+-- even more restrictive than binary: the (type-indexed) tuple-ness of
+-- representable functors is wired in, and so is the object kind. For instance,
+-- we cannot currently handle n-ary coproducts that are not n-ary cartesian
+-- *products*.
 
 class Monoidal k p => Cartesian k p where
   exl :: Obj2 k a b => (a `p` b) `k` a
@@ -58,10 +96,8 @@ infixr 3 &&&
       => (a `k` c) -> (a `k` d) -> (a `k` (c `p` d))
 f &&& g = (f *** g) . dup
 
--- Can I instead extract the Obj constraints from f and g?
-
 -- Inverse of uncurry (&&&)
-unfork2 :: (Cartesian k p, Obj2 k c d)
+unfork2 :: (Cartesian k p, Obj3 k a c d)
         => (a `k` (c `p` d)) -> ((a `k` c) :* (a `k` d))
 unfork2 f = (exl . f , exr . f)
 
@@ -79,9 +115,9 @@ pattern f :& g <- (unfork2 -> (f,g)) where (:&) = (&&&)
 --
 -- Instead, give a typed COMPLETE pragma with each cartesian category instance.
 
-class Category k => Comonoidal k co | k -> co where
+class (Category k, ObjBin k co) => Comonoidal k co | k -> co where
   infixr 2 +++
-  (+++) :: (a `k` c) -> (b `k` d) -> ((a `co` b) `k` (c `co` d))
+  (+++) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `co` b) `k` (c `co` d))
 
 -- TODO: keep both Monoidal and Comonoidal or have one class with two instances
 -- per category?
@@ -98,7 +134,7 @@ infixr 2 |||
 f ||| g = jam . (f +++ g)
 
 -- Inverse of uncurry (|||)
-unjoin2 :: (Cocartesian k co, Obj2 k a b)
+unjoin2 :: (Cocartesian k co, Obj3 k a b c)
         => ((a `co` b) `k` c) -> ((a `k` c) :* (b `k` c))
 unjoin2 f = (f . inl , f . inr)
 
@@ -118,7 +154,7 @@ class (Cartesian k p, Cocartesian k p) => Biproduct k p
 -- -- Instances
 
 instance Category (->) where
-  type Obj (->) = Unconstrained
+  type Obj' (->) = Unconstrained
   id = P.id
   (.) = (P..)
 
@@ -147,21 +183,37 @@ instance Cocartesian (->) (:+) where
 -- Assumes functor categories. To do: look for a clean, poly-kinded alternative.
 -- I guess we could generalize from functor composition and functor application.
 
+-- N-ary products of objects are objects.
+
+-- type ObjR k r = (((forall a. Obj k a => Obj k (r :.: a)) :: Constraint)
+--                 , Representable r)
+
+-- Illegal polymorphic type:
+--   forall (a :: k1 -> *). Obj k a => Obj k (r :.: a)
+-- GHC doesn't yet support impredicative polymorphism
+
+type ObjR' k r = ((forall a. Obj k a => Obj k (r :.: a)) :: Constraint)
+
+class    (Representable r, ObjR' k r) => ObjR k r
+instance (Representable r, ObjR' k r) => ObjR k r
+
 class Category k => MonoidalR k where
-  cross :: Representable r => r (a `k` b) -> ((r :.: a) `k` (r :.: b))
+  cross :: (Obj2 k a b, ObjR k r)
+        => r (a `k` b) -> ((r :.: a) `k` (r :.: b))
 
 -- TODO: maybe wire in p = (:*:) for Monoidal, since we're doing essentially the
 -- same for MonoidalR by choosing Representable r and (:.:).
 
 class MonoidalR k => CartesianR k where
-  exs :: Representable r => r ((r :.: a) `k` a)
-  dups :: Representable r => a `k` (r :.: a)
+  exs :: (Obj k a, Representable r) => r ((r :.: a) `k` a)
+  dups :: (Obj k a, Representable r) => a `k` (r :.: a)
 
-fork :: (CartesianR k, Obj2 k a c, Representable r)
+fork :: (CartesianR k, Obj2 k a c, ObjR k r)
      => r (a `k` c) -> (a `k` (r :.: c))
 fork fs = cross fs . dups
 
-unfork :: (CartesianR k, Representable r) => a `k` (r :.: b) -> r (a `k` b)
+unfork :: (CartesianR k, Obj2 k a b, ObjR k r)
+       => a `k` (r :.: b) -> r (a `k` b)
 unfork f = (. f) <$> exs
 
 -- TODO: How can we know that fork and unfork form an isomorphism?
@@ -174,11 +226,11 @@ class CartesianR k => BiproductR k where
 -- TODO: Maybe replace (Representable r, Eq (Rep r), Foldable r) with an
 -- associated functor constraint.
 
-join :: (BiproductR k, Representable r, Foldable r, Obj2 k a b)
+join :: (BiproductR k, ObjR k r, Foldable r, Obj2 k a b)
      => r (a `k` b) -> (r :.: a) `k` b
 join fs = jams . cross fs  -- note cross == plus
 
-unjoin :: (BiproductR k, Obj2 k a b, Representable r, Eq (Rep r))
+unjoin :: (BiproductR k, Obj2 k a b, ObjR k r, Eq (Rep r))
        => (r :.: a) `k` b -> r (a `k` b)
 unjoin f = (f .) <$> ins
 
@@ -186,7 +238,4 @@ unjoin f = (f .) <$> ins
 -- defaults and giving defaults for exs and dups in terms of fork and unfork.
 -- Ditto for ins/jams and join/unjoin. Use MINIMAL pragmas.
 
--- TODO: Abelian
-
-class (Biproduct (l s) p, BiproductR (l s)) => Scalable s l p where
-  scale :: s -> l s Par1 Par1
+-- Add Abelian?

@@ -8,7 +8,7 @@ module F where
 
 import Prelude hiding (id,(.),(+),(*),sum)
 
-import GHC.Generics ((:*:)(..),(:.:)(..))
+import GHC.Generics (Par1(..),(:*:)(..),(:.:)(..))
 import Data.Functor.Rep
 
 import Misc
@@ -18,7 +18,7 @@ import Category
 newtype F (s :: *) a b = F { unF :: a s -> b s }
 
 instance Category (F s) where
-  type Obj (F s) = Representable 
+  type Obj' (F s) = Representable 
   id = F id
   F g . F f = F (g . f)
 
@@ -74,6 +74,9 @@ instance Additive s => BiproductR (F s) where
 oneHot :: (C2 Representable r a, Eq (Rep r), Additive s)
        => Rep r -> a s -> (r :.: a) s
 oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
+
+class (Biproduct (l s) p, BiproductR (l s)) => Scalable s l p where
+  scale :: s -> l s Par1 Par1
 
 instance Semiring s => Scalable s F (:*:) where
   scale s = F (fmap (s *))   -- F (\ (Par1 s') -> Par1 (s * s'))
