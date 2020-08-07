@@ -16,6 +16,7 @@ import GHC.Types (Constraint)
 import qualified Control.Arrow as A
 import GHC.Generics (Par1,(:.:)(..))
 import Data.Functor.Rep
+import Data.Constraint ((:-)(..),Dict(..),(\\),refl,trans)
 
 import Misc
 
@@ -151,34 +152,9 @@ class (Cartesian k p, Cocartesian k p) => Biproduct k p
 -- TODO: perhaps merge Cartesian and Cocartesian and rename "Biproduct".
 -- Ditto for the representable counterparts below.
 
--- -- Instances
-
-instance Category (->) where
-  type Obj' (->) = Unconstrained
-  id = P.id
-  (.) = (P..)
-
-instance Monoidal (->) (:*) where
-  (***) = (A.***)
-
-instance Cartesian (->) (:*) where
-  exl = fst
-  exr = snd
-  dup = \ a -> (a,a)
-
-instance Comonoidal (->) (:+) where
-  (+++) = (A.+++)
-
-instance Cocartesian (->) (:+) where
-  inl = P.Left
-  inr = P.Right
-  jam = id A.||| id
-  -- Equivalently,
-  -- jam (Left  a) = a
-  -- jam (Right a) = a
-
-
--- -- N-ary (representable) counterparts.
+-------------------------------------------------------------------------------
+-- | N-ary (representable) counterparts.
+-------------------------------------------------------------------------------
 
 -- Assumes functor categories. To do: look for a clean, poly-kinded alternative.
 -- I guess we could generalize from functor composition and functor application.
@@ -239,3 +215,57 @@ unjoin f = (f .) <$> ins
 -- Ditto for ins/jams and join/unjoin. Use MINIMAL pragmas.
 
 -- Add Abelian?
+
+-------------------------------------------------------------------------------
+-- | Instances
+-------------------------------------------------------------------------------
+
+instance Category (->) where
+  type Obj' (->) = Unconstrained
+  id = P.id
+  (.) = (P..)
+
+instance Monoidal (->) (:*) where
+  (***) = (A.***)
+
+instance Cartesian (->) (:*) where
+  exl = fst
+  exr = snd
+  dup = \ a -> (a,a)
+
+instance Comonoidal (->) (:+) where
+  (+++) = (A.+++)
+
+instance Cocartesian (->) (:+) where
+  inl = P.Left
+  inr = P.Right
+  jam = id A.||| id
+  -- Equivalently,
+  -- jam (Left  a) = a
+  -- jam (Right a) = a
+
+
+instance Category (:-) where
+  type Obj' (:-) = Unconstrained
+  id = refl
+  (.) = trans
+
+-- Constraint (,) is not first class with GHC, so define a synonymous class.
+class    (p,q) => p && q
+instance (p,q) => p && q
+
+-- Data.Constraints exports equivalents of Monoidal and Cartesian operations,
+-- but their types involve (,) instead of (&&), leading to kind errors.
+
+instance Monoidal (:-) (&&) where
+  p *** q = Sub $ Dict \\ p \\ q
+
+instance Cartesian (:-) (&&) where
+  exl = Sub Dict
+  exr = Sub Dict
+  dup = Sub Dict
+
+-- Constraint entailment can be cocartesian, but it isn't in GHC (presumably
+-- because GHC doesn't do backtracing instance search). On the other hand,
+-- entaliment can probably be closed, now that GHC supports implication
+-- constraints.
