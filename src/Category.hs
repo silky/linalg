@@ -70,9 +70,9 @@ class (Category k, ObjBin k p) => Monoidal k p | k -> p where
 -- definitions look in comparison.
 --
 -- @dwincort (https://github.com/conal/linalg/pull/28#discussion_r466989563):
--- From what I can tell, if we use `QuantifiedConstraints` with `p`, then we
+-- "From what I can tell, if we use `QuantifiedConstraints` with `p`, then we
 -- can't turn it into an associated type. I'm not sure that's so bad, but it's
--- worth noting.
+-- worth noting." See also the GHC error message there.
 --
 -- TODO: keep poking at this question.
 
@@ -101,7 +101,7 @@ unfork2 :: (Cartesian k p, Obj3 k a c d)
         => (a `k` (c `p` d)) -> ((a `k` c) :* (a `k` d))
 unfork2 f = (exl . f , exr . f)
 
--- TODO: How can we know that uncurry (&&&) and unfork2 form an isomorphism?
+-- Exercise: Prove that uncurry (&&&) and unfork2 form an isomorphism.
 
 pattern (:&) :: (Cartesian k p, Obj3 k a c d)
              => (a `k` c) -> (a `k` d) -> (a `k` (c `p` d))
@@ -138,7 +138,7 @@ unjoin2 :: (Cocartesian k co, Obj3 k a b c)
         => ((a `co` b) `k` c) -> ((a `k` c) :* (b `k` c))
 unjoin2 f = (f . inl , f . inr)
 
--- TODO: How can we know that uncurry (|||) and unjoin2 form an isomorphism?
+-- Exercise: Prove that uncurry (|||) and unjoin2 form an isomorphism.
 
 pattern (:|) :: (Cocartesian k co, Obj3 k a b c)
              => (a `k` c) -> (b `k` c) -> ((a `co` b) `k` c)
@@ -191,7 +191,7 @@ unfork :: (CartesianR k, Obj2 k a b, ObjR k r)
        => a `k` (r :.: b) -> r (a `k` b)
 unfork f = (. f) <$> exs
 
--- TODO: How can we know that fork and unfork form an isomorphism?
+-- Exercise: Prove that fork and unfork form an isomorphism.
 
 -- N-ary biproducts
 class CartesianR k => BiproductR k where
