@@ -103,6 +103,10 @@ unfork2 f = (exl . f , exr . f)
 
 -- Exercise: Prove that uncurry (&&&) and unfork2 form an isomorphism.
 
+-- TODO: Add (&&&) and unfork2 to Cartesian with the current definitions as
+-- defaults, and give defaults for exl, exr, and dup in terms of (&&&) and
+-- unfork2. Use MINIMAL pragmas.
+
 pattern (:&) :: (Cartesian k p, Obj3 k a c d)
              => (a `k` c) -> (a `k` d) -> (a `k` (c `p` d))
 pattern f :& g <- (unfork2 -> (f,g)) where (:&) = (&&&)
@@ -139,6 +143,10 @@ unjoin2 :: (Cocartesian k co, Obj3 k a b c)
 unjoin2 f = (f . inl , f . inr)
 
 -- Exercise: Prove that uncurry (|||) and unjoin2 form an isomorphism.
+
+-- TODO: Add (|||) and unjoin2 to Cartesian with the current definitions as
+-- defaults, and give defaults for exl, exr, and dup in terms of (|||) and
+-- unjoin2. Use MINIMAL pragmas.
 
 pattern (:|) :: (Cocartesian k co, Obj3 k a b c)
              => (a `k` c) -> (b `k` c) -> ((a `co` b) `k` c)
@@ -210,7 +218,7 @@ unjoin :: (BiproductR k, Obj2 k a b, ObjR k r, Eq (Rep r))
 unjoin f = (f .) <$> ins
 
 -- TODO: Add fork & unfork to CartesianR with the current definitions as
--- defaults and giving defaults for exs and dups in terms of fork and unfork.
+-- defaults, and give defaults for exs and dups in terms of fork and unfork.
 -- Ditto for ins/jams and join/unjoin. Use MINIMAL pragmas.
 
 -- Add Abelian?
