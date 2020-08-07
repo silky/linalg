@@ -1,4 +1,3 @@
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE UndecidableInstances #-} -- see below
 {-# LANGUAGE UndecidableSuperClasses #-} -- see below
 

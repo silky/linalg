@@ -39,7 +39,7 @@ instance Additive s => Cocartesian (F s) (:*:) where
 
 instance Additive s => Biproduct (F s) (:*:)
 
-instance Additive s => MonoidalR (F s) where
+instance MonoidalR (F s) where
   cross :: Representable r => r (F s a b) -> F s (r :.: a) (r :.: b)
   cross fs = F (Comp1 . liftR2 unF fs . unComp1)
 
@@ -51,7 +51,7 @@ Comp1 . liftR2 unF fs . unComp1 :: (r :.: a) s -> (r :.: b) s
 cross = F . inNew (liftR2 unF)
 #endif
 
-instance Additive s => CartesianR (F s) where
+instance CartesianR (F s) where
   exs :: Representable r => r (F s (r :.: a) a)
   exs = tabulate (\ i -> F (\ (Comp1 as) -> as `index` i))
   dups :: Representable r => F s a (r :.: a)
@@ -75,13 +75,13 @@ oneHot :: (C2 Representable r a, Eq (Rep r), Additive s)
        => Rep r -> a s -> (r :.: a) s
 oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
 
-class (Biproduct (l s) p, BiproductR (l s)) => Scalable s l p where
-  scale :: s -> l s Par1 Par1
+class Scalable l where
+  scale :: Semiring s => s -> l s Par1 Par1
 
-instance Semiring s => Scalable s F (:*:) where
+instance Scalable F where
   scale s = F (fmap (s *))   -- F (\ (Par1 s') -> Par1 (s * s'))
 
-class Linear l where
+class LinearMap l where
   -- | Semantic function for all linear map representations. Correctness of
   -- every operation on every representation is specified by requiring that mu
   -- is homomorphic for (distributes over) that operation. For instance, mu must
@@ -91,6 +91,6 @@ class Linear l where
   mu' :: F s a b -> l s a b
 
 -- Trivial instance
-instance Linear F where
+instance LinearMap F where
   mu  = id
   mu' = id
