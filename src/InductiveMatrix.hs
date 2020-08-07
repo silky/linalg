@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
-
 {- |
 "Inductive matrices", as in "Type Your Matrices for Great Good: A Haskell
 Library of Typed Matrices and Applications (Functional Pearl)" Armando Santos
@@ -11,19 +9,14 @@ and José N Oliveira (Haskell Symposium 2020) [URL?]. The main differences:
 
 module InductiveMatrix where
 
--- import qualified Prelude as P
 import Prelude hiding ((+),sum,(*),unzip)
 
-import GHC.Types (Constraint)
 import GHC.Generics (Par1(..), (:*:)(..), (:.:)(..))
-import qualified Control.Arrow as A
-import Data.Distributive
 import Data.Functor.Rep
 
 import Misc
 import Category
 import LinearFunction hiding (L)
-import qualified LinearFunction
 
 -------------------------------------------------------------------------------
 -- | Representation and its denotation
@@ -56,4 +49,3 @@ instance LinearMap L where
 -------------------------------------------------------------------------------
 
 -- instance Category (L s) where ...
-
