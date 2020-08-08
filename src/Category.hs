@@ -1,7 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-} -- see below
 {-# LANGUAGE UndecidableSuperClasses #-} -- see below
 
-{-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
+-- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
 {-# LANGUAGE AllowAmbiguousTypes #-}   -- See below
 
@@ -13,8 +13,7 @@ import qualified Prelude as P
 import Prelude hiding (id,(.))
 import GHC.Types (Constraint)
 import qualified Control.Arrow as A
-import GHC.Generics (Par1,(:.:)(..))
-import Data.Functor.Rep
+import GHC.Generics ((:.:)(..))
 import Data.Constraint ((:-)(..),Dict(..),(\\),refl,trans)
 
 import Misc
@@ -156,36 +155,20 @@ pattern f :| g <- (unjoin2 -> (f,g)) where (:|) = (|||)
 -- When products and coproducts coincide
 class (Cartesian k p, Cocartesian k p) => Biproduct k p
 
--- TODO: perhaps merge Cartesian and Cocartesian and rename "Biproduct".
--- Ditto for the representable counterparts below.
-
 -------------------------------------------------------------------------------
--- | N-ary (representable) counterparts.
+-- | n-ary counterparts (where n is a type, not a number).
 -------------------------------------------------------------------------------
 
 -- Assumes functor categories. To do: look for a clean, poly-kinded alternative.
 -- I guess we could generalize from functor composition and functor application.
 
--- N-ary products of objects are objects.
-
--- type ObjR k r = (((forall a. Obj k a => Obj k (r :.: a)) :: Constraint)
---                 , Representable r)
-
--- Illegal polymorphic type:
---   forall (a :: k1 -> *). Obj k a => Obj k (r :.: a)
--- GHC doesn't yet support impredicative polymorphism
-
 type ObjR' k r = ((forall z. Obj k z => Obj k (r :.: z)) :: Constraint)
 
-class    (Representable r, ObjR' k r) => ObjR k r
-instance (Representable r, ObjR' k r) => ObjR k r
+class    (Functor r, ObjR' k r) => ObjR k r
+instance (Functor r, ObjR' k r) => ObjR k r
 
 class (Category k, ObjR k r) => MonoidalR k r where
   cross :: Obj2 k a b => r (a `k` b) -> ((r :.: a) `k` (r :.: b))
-
--- TODO: maybe wire in p = (:*:) for Monoidal, since we're doing essentially the
--- same for MonoidalR by choosing Representable r and (:.:).
--- 
 
 class MonoidalR k r => CartesianR k r where
   exs  :: Obj k a => r ((r :.: a) `k` a)
@@ -200,12 +183,9 @@ unfork f = (. f) <$> exs
 -- Exercise: Prove that fork and unfork form an isomorphism.
 
 -- N-ary biproducts
-class (CartesianR k r, Eq (Rep r), Foldable r) => BiproductR k r where
+class CartesianR k r => BiproductR k r where
   ins  :: Obj k a => r (a `k` (r :.: a))
   jams :: Obj k a => (r :.: a) `k` a
-
--- TODO: Maybe replace (Representable r, Eq (Rep r), Foldable r) with an
--- associated functor constraint.
 
 join :: (BiproductR k r, Obj2 k a b) => r (a `k` b) -> (r :.: a) `k` b
 join fs = jams . cross fs  -- note cross == plus
