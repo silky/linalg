@@ -12,9 +12,11 @@ module Category where
 import qualified Prelude as P
 import Prelude hiding (id,(.))
 import GHC.Types (Constraint)
+import GHC.Generics (Generic,Generic1)
 import qualified Control.Arrow as A
-import GHC.Generics ((:.:)(..))
 import Data.Constraint ((:-)(..),Dict(..),(\\),refl,trans)
+import Data.Distributive
+import Data.Functor.Rep
 
 import Misc
 
@@ -152,8 +154,11 @@ pattern (:|) :: (Cocartesian k co, Obj3 k a b c)
 pattern f :| g <- (unjoin2 -> (f,g)) where (:|) = (|||)
 -- {-# complete (:|) #-}  -- See (:&) above
 
--- When products and coproducts coincide
-class (Cartesian k p, Cocartesian k p) => Biproduct k p
+type Bicartesian k p co = (Cartesian k p, Cocartesian k co)
+
+-- When products and coproducts coincide. A class rather than type synonym,
+-- because there are more laws.
+class Bicartesian k p p => Biproduct k p
 
 -------------------------------------------------------------------------------
 -- | n-ary counterparts (where n is a type, not a number).
@@ -162,45 +167,55 @@ class (Cartesian k p, Cocartesian k p) => Biproduct k p
 -- Assumes functor categories. To do: look for a clean, poly-kinded alternative.
 -- I guess we could generalize from functor composition and functor application.
 
-type ObjR' k r = ((forall z. Obj k z => Obj k (r :.: z)) :: Constraint)
+type ObjR' k r p = ((forall z. Obj k z => Obj k (p r z)) :: Constraint)
 
-class    (Functor r, ObjR' k r) => ObjR k r
-instance (Functor r, ObjR' k r) => ObjR k r
+class    (Functor r, ObjR' k r p) => ObjR k r p
+instance (Functor r, ObjR' k r p) => ObjR k r p
 
-class (Category k, ObjR k r) => MonoidalR k r where
-  cross :: Obj2 k a b => r (a `k` b) -> ((r :.: a) `k` (r :.: b))
+class (Category k, ObjR k r p) => MonoidalR k r p | k r -> p where
+  cross :: Obj2 k a b => r (a `k` b) -> (p r a `k` p r b)
 
-class MonoidalR k r => CartesianR k r where
-  exs  :: Obj k a => r ((r :.: a) `k` a)
-  dups :: Obj k a => a `k` (r :.: a)
+class MonoidalR k r p => CartesianR k r p where
+  exs  :: Obj k a => r (p r a `k` a)
+  dups :: Obj k a => a `k` p r a
 
-fork :: (CartesianR k r, Obj2 k a c) => r (a `k` c) -> (a `k` (r :.: c))
+fork :: (CartesianR k r p, Obj2 k a c) => r (a `k` c) -> (a `k` p r c)
 fork fs = cross fs . dups
 
-unfork :: (CartesianR k r, Obj2 k a b) => a `k` (r :.: b) -> r (a `k` b)
+unfork :: (CartesianR k r p, Obj2 k a b) => a `k` (p r b) -> r (a `k` b)
 unfork f = (. f) <$> exs
 
 -- Exercise: Prove that fork and unfork form an isomorphism.
 
+class (Category k, ObjR k r co) => ComonoidalR k r co | k r -> co where
+  plus :: Obj2 k a b => r (a `k` b) -> (co r a `k` co r b)
+
 -- N-ary biproducts
-class CartesianR k r => BiproductR k r where
-  ins  :: Obj k a => r (a `k` (r :.: a))
-  jams :: Obj k a => (r :.: a) `k` a
+class ComonoidalR k r co => CocartesianR k r co where
+  ins  :: Obj k a => r (a `k` co r a)
+  jams :: Obj k a => co r a `k` a
 
-join :: (BiproductR k r, Obj2 k a b) => r (a `k` b) -> (r :.: a) `k` b
-join fs = jams . cross fs  -- note cross == plus
+join :: (CocartesianR k r co, Obj2 k a b) => r (a `k` b) -> co r a `k` b
+join fs = jams . plus fs
 
-unjoin :: (BiproductR k r, Obj2 k a b) => (r :.: a) `k` b -> r (a `k` b)
+unjoin :: (CocartesianR k r co, Obj2 k a b) => co r a `k` b -> r (a `k` b)
 unjoin f = (f .) <$> ins
 
 -- TODO: Add fork & unfork to CartesianR with the current definitions as
 -- defaults, and give defaults for exs and dups in terms of fork and unfork.
 -- Ditto for ins/jams and join/unjoin. Use MINIMAL pragmas.
 
--- Add Abelian?
+type BicartesianR k r p co = (CartesianR k r p, CocartesianR k r co)
+
+-- When products and coproducts coincide. A class rather than type synonym,
+-- because there are more laws.
+class BicartesianR k r p p => BiproductR k r p
+
+-- Add Abelian and AbelianR?
+-- I think f + g = jam . (f &&& g), and sum fs = jams . fork fs.
 
 -------------------------------------------------------------------------------
--- | Instances
+-- | Function instances
 -------------------------------------------------------------------------------
 
 instance Category (->) where
@@ -227,6 +242,36 @@ instance Cocartesian (->) (:+) where
   -- jam (Left  a) = a
   -- jam (Right a) = a
 
+newtype Ap f a = Ap { unAp :: f a }
+  deriving (Functor, Generic, Generic1)
+
+instance Distributive f => Distributive (Ap f) where
+  distribute = Ap . distribute . fmap unAp
+
+instance Representable f => Representable (Ap f) where
+  type Rep (Ap f) = Rep f
+  tabulate = Ap . tabulate
+  index = index . unAp
+
+instance Representable r => MonoidalR (->) r Ap where
+  cross rab (Ap ra) = Ap (liftR2 ($) rab ra)
+
+instance Representable r => CartesianR (->) r Ap where
+  exs = tabulate (flip index)
+  dups = pureRep
+
+data RepAnd r x = RepAnd (Rep r) x
+
+instance Representable r => ComonoidalR (->) r RepAnd where
+  plus fs (RepAnd i a) = RepAnd i ((fs `index` i) a)
+
+instance Representable r => CocartesianR (->) r RepAnd where
+  ins = tabulate RepAnd
+  jams (RepAnd _ a) = a
+
+-------------------------------------------------------------------------------
+-- | Constraint entailment
+-------------------------------------------------------------------------------
 
 instance Category (:-) where
   type Obj' (:-) = Unconstrained
@@ -253,8 +298,10 @@ instance Cartesian (:-) (&&) where
 -- because GHC instance search doesn't backtrac). On the other hand, entaliment
 -- can probably be closed, now that GHC supports implication constraints.
 
+-------------------------------------------------------------------------------
+-- | Opposite category
+-------------------------------------------------------------------------------
 
--- Opposite category
 newtype Op k a b = Op { unOp :: b `k` a }
 
 instance Category k => Category (Op k) where
@@ -278,9 +325,13 @@ instance Cartesian k p => Cocartesian (Op k) p where
   inr = Op exr
   jam = Op dup
 
-instance MonoidalR k r => MonoidalR (Op k) r where
-  cross (fmap unOp -> fs) = Op (cross fs)
+instance ComonoidalR k r p => MonoidalR (Op k) r p where
+  cross (fmap unOp -> fs) = Op (plus fs)
 
-instance BiproductR k r => CartesianR (Op k) r where
+instance MonoidalR k r p => ComonoidalR (Op k) r p where
+  plus (fmap unOp -> fs) = Op (cross fs)
+
+
+instance (MonoidalR k r p, CocartesianR k r p) => CartesianR (Op k) r p where
   exs  = Op <$> ins
   dups = Op jams

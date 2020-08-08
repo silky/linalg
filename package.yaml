@@ -15,7 +15,8 @@ default-extensions:
   - ConstraintKinds
   # - DefaultSignatures
   # - DeriveFoldable
-  # - DeriveFunctor
+  - DeriveFunctor
+  - DeriveGeneric
   - FlexibleContexts
   - FlexibleInstances
   - FunctionalDependencies

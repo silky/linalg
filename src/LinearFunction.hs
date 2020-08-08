@@ -39,8 +39,8 @@ instance Additive s => Cocartesian (L s) (:*:) where
 
 instance Additive s => Biproduct (L s) (:*:)
 
-instance Representable r => MonoidalR (L s) r where
-  cross :: r (L s a b) -> L s (r :.: a) (r :.: b)
+instance Representable r => MonoidalR (L s) r (:.:) where
+  cross :: Obj2 (L s) a b => r (L s a b) -> L s (r :.: a) (r :.: b)
   cross fs = L (Comp1 . liftR2 unF fs . unComp1)
 
 #if 0
@@ -51,20 +51,22 @@ Comp1 . liftR2 unF fs . unComp1 :: (r :.: a) s -> (r :.: b) s
 cross = L . inNew (liftR2 unF)
 #endif
 
-instance Representable r => CartesianR (L s) r where
-  exs :: r (L s (r :.: a) a)
+instance Representable r => CartesianR (L s) r (:.:) where
+  exs :: Obj (L s) a => r (L s (r :.: a) a)
   exs = tabulate (\ i -> L (\ (Comp1 as) -> as `index` i))
-  dups :: L s a (r :.: a)
-  dups = L (\ a -> Comp1 (pureRep a))
-         -- L (Comp1 . pureRep)
+  dups :: Obj (L s) a => L s a (r :.: a)
+  dups = L (Comp1 . pureRep)
+
+instance Representable r => ComonoidalR (L s) r (:.:) where
+  plus = cross
 
 instance (Additive s, Representable r, Eq (Rep r), Foldable r)
-      => BiproductR (L s) r where
-  ins :: Representable a => r (L s a (r :.: a))
+      => CocartesianR (L s) r (:.:) where
+  ins :: Obj (L s) a => r (L s a (r :.: a))
   ins = tabulate (L . oneHot)
         -- tabulate $ \ i -> L (oneHot i)
         -- tabulate $ \ i -> L (\ a -> oneHot i a)
-  jams :: Representable a => L s (r :.: a) a
+  jams :: Obj (L s) a => L s (r :.: a) a
   jams = L (\ (Comp1 as) -> foldr (+^) zeroV as)
 
 -- TODO: can we define ins without Eq (Rep r)?
@@ -72,7 +74,7 @@ instance (Additive s, Representable r, Eq (Rep r), Foldable r)
 -- Illegal nested constraint ‘Eq (Rep r)’
 -- (Use UndecidableInstances to permit this)
 
-oneHot :: (C2 Representable a r, Eq (Rep r), Additive s)
+oneHot :: (Obj (L s) a, Representable r, Eq (Rep r), Additive s)
        => Rep r -> a s -> (r :.: a) s
 oneHot i a = Comp1 (tabulate (\ j -> if i == j then a else zeroV))
 
@@ -87,9 +89,9 @@ class LinearMap l where
   -- every operation on every representation is specified by requiring that mu
   -- is homomorphic for (distributes over) that operation. For instance, mu must
   -- be a functor (Category homomorphism).
-  mu  :: l s a b -> L s a b
+  mu  :: Obj2 (l s) a b => l s a b -> L s a b
   -- | Inverse of mu
-  mu' :: L s a b -> l s a b
+  mu' :: Obj2 (l s) a b => L s a b -> l s a b
 
 -- Trivial instance
 instance LinearMap L where
