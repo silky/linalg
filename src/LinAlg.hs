@@ -4,7 +4,7 @@
 
 module LinAlg where
 
-import qualified Prelude as P
+-- import qualified Prelude as P
 import Prelude hiding ((+),sum,(*),unzip)
 
 import GHC.Types (Constraint)
@@ -13,11 +13,10 @@ import qualified Control.Arrow as A
 import Data.Distributive
 import Data.Functor.Rep
 
-infixl 7 :*
-type (:*)  = (,)
+-- Experiment
+import Data.Constraint (Dict(..))
 
-unzip :: Functor f => f (a :* b) -> f a :* f b
-unzip ps = (fst <$> ps, snd <$> ps)
+import Misc
 
 type V f = ((Representable f, Foldable f, Eq (Rep f), ToScalar f, ToRowMajor f)
             :: Constraint)
@@ -28,26 +27,12 @@ type V4 f g h k = (V2 f g, V2 h k)
 -- TODO: Why does V suddenly need ":: Constraint" after adding ToScalar f and
 -- ToRowMajor f?
 
-class Additive a where
-  infixl 6 +
-  zero :: a
-  (+) :: a -> a -> a
+-- type V3f f g h = (V2 f g, Representable h)  -- for n-ary forks
+-- type V3j f g h = (V3f f g h, Foldable h)    -- for n-ary joins
 
-class Additive a => Semiring a where
-  infixl 7 *
-  one :: a
-  (*) :: a -> a -> a
-
-sum :: (Foldable f, Additive a) => f a -> a
-sum = foldr (+) zero
-
--- | Vector addition
-infixl 6 +^
-(+^) :: (Representable f, Additive s) => f s -> f s -> f s
-(+^) = liftR2 (+)
-
-instance Additive Double where { zero = 0; (+) = (P.+) }
-instance Semiring Double where { one  = 1; (*) = (P.*) }
+-- For the isV experiment below, I need more.
+type V3f f g h = V3 f g h  -- for n-ary forks
+type V3j f g h = V3 f g h  -- for n-ary joins
 
 infixr 3 :&#
 infixr 2 :|#
@@ -58,8 +43,8 @@ data L :: (* -> *) -> (* -> *) -> (* -> *) where
   Scale :: s -> L Par1 Par1 s
   (:|#) :: V3 f g h => L f h s -> L g h s -> L (f :*: g) h s
   (:&#) :: V3 f h k => L f h s -> L f k s -> L f (h :*: k) s
-  JoinL :: V3 f g h => h (L f g s) -> L (h :.: f) g s
-  ForkL :: V3 f g h => h (L f g s) -> L f (h :.: g) s
+  JoinL :: V3j f g h => h (L f g s) -> L (h :.: f) g s
+  ForkL :: V3f f g h => h (L f g s) -> L f (h :.: g) s
 
 unjoin2 :: V3 f g h => L (f :*: g) h s -> L f h s :* L g h s
 unjoin2 (p :|# q) = (p,q)
@@ -95,7 +80,7 @@ pattern (:|) :: V3 f g h => L f h s -> L g h s -> L (f :*: g) h s
 pattern u :| v <- (unjoin2 -> (u,v)) where (:|) = (:|#)
 {-# complete (:|) #-}
 
-unforkL :: V3 f g h => L f (h :.: g) s -> h (L f g s)
+unforkL :: V3f f g h => L f (h :.: g) s -> h (L f g s)
 unforkL (p :|# q)  = liftR2 (:|#) (unforkL p) (unforkL q)
 unforkL (ForkL ms) = ms
 unforkL (JoinL ms) = JoinL <$> distribute (unforkL <$> ms)
@@ -119,16 +104,16 @@ liftR2 (:|#) (unforkL p) (unforkL p') :: h (L (f :*: f') g s)
 JoinL <$> distrib (unforkL <$> ms) :: h (L (k :.: f) g s)
 #endif
 
-unjoinL :: V3 f g h => L (h :.: f) g s -> h (L f g s)
+unjoinL :: V3f f g h => L (h :.: f) g s -> h (L f g s)
 unjoinL (p :&# p') = liftR2 (:&#) (unjoinL p) (unjoinL p')
 unjoinL (JoinL ms) = ms
 unjoinL (ForkL ms) = fmap ForkL (distribute (fmap unjoinL ms))
 
-pattern Fork :: V3 f g h => h (L f g s) -> L f (h :.: g) s
+pattern Fork :: V3f f g h => h (L f g s) -> L f (h :.: g) s
 pattern Fork ms <- (unforkL -> ms) where Fork = ForkL
 {-# complete Fork #-}
 
-pattern Join :: V3 f g h => h (L f g s) -> L (h :.: f) g s
+pattern Join :: V3j f g h => h (L f g s) -> L (h :.: f) g s
 pattern Join ms <- (unjoinL -> ms) where Join = JoinL
 {-# complete Join #-}
 
@@ -290,3 +275,26 @@ zeroL = rowMajToL (pureRep (pureRep zero))
 -- Vector scaling
 scaleV :: (V a, Additive s) => s -> L a a s
 scaleV s = rowMajToL (diagRep zero (pureRep s))
+
+
+-- -- Experiment
+
+-- Prove V/Obj constraints from morphisms
+isV :: L a b s -> Dict (V2 a b)
+isV (Scale _) = Dict
+isV (_ :|# _) = Dict
+isV (_ :&# _) = Dict
+isV (JoinL _) = Dict
+isV (ForkL _) = Dict
+
+infixr 9 @.@
+(@.@) :: Semiring s => L b c s -> L a b s -> L a c s
+-- b @.@ a | (Dict, Dict) <- (isV a, isV b) = b .@ a
+
+-- b@(isV -> Dict) @.@ a@(isV -> Dict) = b .@ a
+
+pattern IsV :: () => V2 a b => L a b s
+pattern IsV <- (isV -> Dict)
+{-# COMPLETE IsV :: L #-}
+
+b@IsV @.@ a@IsV = b .@ a

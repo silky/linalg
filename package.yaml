@@ -6,7 +6,7 @@ description:         Please see the README on GitHub at <https://github.com/cona
 
 # Common language extensions defining the default language for the project.
 # Un-comment each extension the first time it's used in a module.
-# UndecidableInstances and AllowAmbiguousTypes instead go in the modules with
+# Undecidable* and AllowAmbiguousTypes instead go in the modules with
 # a corresponding GHC error comment right after the code that generates the
 # warning. See LinAlg for an example.
 
@@ -21,11 +21,12 @@ default-extensions:
   - FunctionalDependencies
   - GADTs
   # - GeneralizedNewtypeDeriving
+  - InstanceSigs
   # - LambdaCase
   - MultiParamTypeClasses
   - PatternSynonyms
-  # - QuantifiedConstraints
-  # - RankNTypes
+  - QuantifiedConstraints
+  - RankNTypes
   # - StandaloneDeriving
   # - TupleSections
   - TypeApplications
@@ -44,9 +45,14 @@ library:
   dependencies:
     - base
     - ghc-prim  # GHC.Types (Constraint)
+    - constraints  # Experiment
     - distributive
     - adjunctions
   other-modules: []
   source-dirs: src
   exposed-modules:
-    - LinAlg
+    - Misc
+    - Category
+    - LinearFunction
+    - InductiveMatrix # coming
+    - LinAlg          # going
