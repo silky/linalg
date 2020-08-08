@@ -12,7 +12,7 @@ module Category where
 import qualified Prelude as P
 import Prelude hiding (id,(.))
 import GHC.Types (Constraint)
-import GHC.Generics (Generic,Generic1)
+import GHC.Generics (Generic,Generic1,(:*:),(:.:),Par1)
 import qualified Control.Arrow as A
 import Data.Constraint ((:-)(..),Dict(..),(\\),refl,trans)
 import Data.Distributive
@@ -343,3 +343,59 @@ instance CartesianR k r p => CocartesianR (Op k) r p where
   jams = Op dups
 
 instance BiproductR k r p => BiproductR (Op k) r p
+
+-------------------------------------------------------------------------------
+-- | Representable indices as objects
+-------------------------------------------------------------------------------
+
+-- Trie functors
+class (Representable (Trie i), Rep (Trie i) ~ i) => HasTrie i where
+  type Trie i :: * -> *
+
+instance HasTrie () where
+  type Trie () = Par1
+instance C2 HasTrie i j => HasTrie (i :+ j) where
+  type Trie (i :+ j) = Trie i :*: Trie j
+instance C2 HasTrie i j => HasTrie (i :* j) where
+  type Trie (i :* j) = Trie i :.: Trie j
+
+newtype Indexed k i j = Indexed { unIndexed :: Trie i `k` Trie j }
+
+class    Obj k (Trie i) => ObjI k i
+instance Obj k (Trie i) => ObjI k i
+
+instance Category k => Category (Indexed k) where
+  type Obj' (Indexed k) = ObjI k
+  id = Indexed id
+  Indexed g . Indexed f = Indexed (g . f)
+
+instance Monoidal k (:*:) => Monoidal (Indexed k) (:+) where
+  Indexed f *** Indexed g = Indexed (f *** g)
+
+instance Cartesian k (:*:) => Cartesian (Indexed k) (:+) where
+  exl = Indexed exl
+  exr = Indexed exr
+  dup = Indexed dup
+
+instance Comonoidal k (:*:) => Comonoidal (Indexed k) (:+) where
+  Indexed f +++ Indexed g = Indexed (f +++ g)
+
+instance Cocartesian k (:*:) => Cocartesian (Indexed k) (:+) where
+  inl = Indexed inl
+  inr = Indexed inr
+  jam = Indexed jam
+
+instance Biproduct k (:*:) => Biproduct (Indexed k) (:+)
+
+-- TODO: generalize from (:*:) and (:+).
+
+#if 0
+
+type RepX r i = Rep r :* i
+
+instance MonoidalR k r (:.:) => MonoidalR (Indexed k) r RepX where
+  cross (fmap unIndexed -> fs) = Indexed (cross fs)
+
+-- Hm. Needs unsaturated type synonym
+
+#endif
