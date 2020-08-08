@@ -245,6 +245,9 @@ instance Cocartesian (->) (:+) where
 newtype Ap f a = Ap { unAp :: f a }
   deriving (Functor, Generic, Generic1)
 
+-- TODO: switch to Data.Monoid.Ap if/when it gets Distributive and Representable
+-- instances.
+
 instance Distributive f => Distributive (Ap f) where
   distribute = Ap . distribute . fmap unAp
 
@@ -331,7 +334,12 @@ instance ComonoidalR k r p => MonoidalR (Op k) r p where
 instance MonoidalR k r p => ComonoidalR (Op k) r p where
   plus (fmap unOp -> fs) = Op (cross fs)
 
-
 instance (MonoidalR k r p, CocartesianR k r p) => CartesianR (Op k) r p where
   exs  = Op <$> ins
   dups = Op jams
+
+instance (MonoidalR k r p, CartesianR k r p) => CocartesianR (Op k) r p where
+  ins  = Op <$> exs
+  jams = Op dups
+
+instance BiproductR k r p => BiproductR (Op k) r p
