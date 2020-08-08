@@ -175,46 +175,42 @@ class (Cartesian k p, Cocartesian k p) => Biproduct k p
 --   forall (a :: k1 -> *). Obj k a => Obj k (r :.: a)
 -- GHC doesn't yet support impredicative polymorphism
 
-type ObjR' k r = ((forall a. Obj k a => Obj k (r :.: a)) :: Constraint)
+type ObjR' k r = ((forall z. Obj k z => Obj k (r :.: z)) :: Constraint)
 
 class    (Representable r, ObjR' k r) => ObjR k r
 instance (Representable r, ObjR' k r) => ObjR k r
 
-class Category k => MonoidalR k where
-  cross :: (Obj2 k a b, ObjR k r)
-        => r (a `k` b) -> ((r :.: a) `k` (r :.: b))
+class (Category k, ObjR k r) => MonoidalR k r where
+  cross :: Obj2 k a b => r (a `k` b) -> ((r :.: a) `k` (r :.: b))
 
 -- TODO: maybe wire in p = (:*:) for Monoidal, since we're doing essentially the
 -- same for MonoidalR by choosing Representable r and (:.:).
+-- 
 
-class MonoidalR k => CartesianR k where
-  exs :: (Obj k a, Representable r) => r ((r :.: a) `k` a)
-  dups :: (Obj k a, Representable r) => a `k` (r :.: a)
+class MonoidalR k r => CartesianR k r where
+  exs  :: Obj k a => r ((r :.: a) `k` a)
+  dups :: Obj k a => a `k` (r :.: a)
 
-fork :: (CartesianR k, Obj2 k a c, ObjR k r)
-     => r (a `k` c) -> (a `k` (r :.: c))
+fork :: (CartesianR k r, Obj2 k a c) => r (a `k` c) -> (a `k` (r :.: c))
 fork fs = cross fs . dups
 
-unfork :: (CartesianR k, Obj2 k a b, ObjR k r)
-       => a `k` (r :.: b) -> r (a `k` b)
+unfork :: (CartesianR k r, Obj2 k a b) => a `k` (r :.: b) -> r (a `k` b)
 unfork f = (. f) <$> exs
 
 -- Exercise: Prove that fork and unfork form an isomorphism.
 
 -- N-ary biproducts
-class CartesianR k => BiproductR k where
-  ins  :: (Representable r, Eq (Rep r), Obj k a) => r (a `k` (r :.: a))
-  jams :: (Representable r, Foldable r, Obj k a) => (r :.: a) `k` a
+class (CartesianR k r, Eq (Rep r), Foldable r) => BiproductR k r where
+  ins  :: Obj k a => r (a `k` (r :.: a))
+  jams :: Obj k a => (r :.: a) `k` a
 
 -- TODO: Maybe replace (Representable r, Eq (Rep r), Foldable r) with an
 -- associated functor constraint.
 
-join :: (BiproductR k, ObjR k r, Foldable r, Obj2 k a b)
-     => r (a `k` b) -> (r :.: a) `k` b
+join :: (BiproductR k r, Obj2 k a b) => r (a `k` b) -> (r :.: a) `k` b
 join fs = jams . cross fs  -- note cross == plus
 
-unjoin :: (BiproductR k, Obj2 k a b, ObjR k r, Eq (Rep r))
-       => (r :.: a) `k` b -> r (a `k` b)
+unjoin :: (BiproductR k r, Obj2 k a b) => (r :.: a) `k` b -> r (a `k` b)
 unjoin f = (f .) <$> ins
 
 -- TODO: Add fork & unfork to CartesianR with the current definitions as
@@ -276,3 +272,35 @@ instance Cartesian (:-) (&&) where
 -- Constraint entailment could be cocartesian but isn't in GHC (presumably
 -- because GHC instance search doesn't backtrac). On the other hand, entaliment
 -- can probably be closed, now that GHC supports implication constraints.
+
+
+-- Opposite category
+newtype Op k a b = Op { unOp :: b `k` a }
+
+instance Category k => Category (Op k) where
+  type Obj' (Op k) = Obj k
+  id = Op id
+  Op g . Op f = Op (f . g)
+
+instance Comonoidal k co => Monoidal (Op k) co where
+  Op f *** Op g = Op (f +++ g)
+
+instance Cocartesian k co => Cartesian (Op k) co where
+  exl = Op inl
+  exr = Op inr
+  dup = Op jam
+
+instance Monoidal k p => Comonoidal (Op k) p where
+  Op f +++ Op g = Op (f *** g)
+
+instance Cartesian k p => Cocartesian (Op k) p where
+  inl = Op exl
+  inr = Op exr
+  jam = Op dup
+
+instance MonoidalR k r => MonoidalR (Op k) r where
+  cross (fmap unOp -> fs) = Op (cross fs)
+
+instance BiproductR k r => CartesianR (Op k) r where
+  exs  = Op <$> ins
+  dups = Op jams

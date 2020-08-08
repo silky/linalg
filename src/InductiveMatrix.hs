@@ -32,7 +32,7 @@ data L :: * -> (* -> *) -> (* -> *) -> * where
   Scale :: Semiring s => s -> L s Par1 Par1
   (:|#) :: (C3 V a b c, Additive s) => L s a c -> L s b c -> L s (a :*: b) c
   (:&#) :: C3 V a c k => L s a c -> L s a k -> L s a (c :*: k)
-  JoinL :: (C2 V a b, Representable r, Foldable r, Additive s)
+  JoinL :: (C2 V a b, Representable r, Eq (Rep r), Foldable r, Additive s)
         => r (L s a b) -> L s (r :.: a) b
   ForkL :: C3 V a b r => r (L s a b) -> L s a (r :.: b)
 
