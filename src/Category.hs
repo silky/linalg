@@ -334,11 +334,11 @@ instance ComonoidalR k r p => MonoidalR (Op k) r p where
 instance MonoidalR k r p => ComonoidalR (Op k) r p where
   plus (fmap unOp -> fs) = Op (cross fs)
 
-instance (MonoidalR k r p, CocartesianR k r p) => CartesianR (Op k) r p where
+instance CocartesianR k r p => CartesianR (Op k) r p where
   exs  = Op <$> ins
   dups = Op jams
 
-instance (MonoidalR k r p, CartesianR k r p) => CocartesianR (Op k) r p where
+instance CartesianR k r p => CocartesianR (Op k) r p where
   ins  = Op <$> exs
   jams = Op dups
 
