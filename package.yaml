@@ -57,3 +57,7 @@ library:
     - LinearFunction
     - InductiveMatrix # coming
     - LinAlg          # going
+    - Category.Opposite
+    - Category.Isomorphism
+    - Category.Index
+    - Category.Constraint
