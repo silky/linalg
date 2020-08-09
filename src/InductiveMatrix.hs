@@ -48,4 +48,7 @@ instance LinearMap L where
 -- | Instances (all deducible from denotational homomorphisms)
 -------------------------------------------------------------------------------
 
--- instance Category (L s) where ...
+instance Category (L s) where
+  type Obj' (L s) = V
+  id = undefined
+  (.) = undefined
