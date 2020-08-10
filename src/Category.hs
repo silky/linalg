@@ -131,16 +131,22 @@ class Associative k p where
 class Symmetric k p where
   swap :: Obj2 k a b => (a `p` b) `k` (b `p` a)
 
+-- TODO: Maybe split Symmetric into Braided and Symmetric, with the latter
+-- having an extra law. Maybe Associative as Braided superclass. See
+-- <https://hackage.haskell.org/package/categories/docs/Control-Category-Braided.html>.
+-- Note that Associative is a superclass of Monoidal in
+-- <https://hackage.haskell.org/package/categories/docs/Control-Category-Monoidal.html>.
+
 class (Category k, ObjBin k co) => Comonoidal k co | k -> co where
   infixr 2 +++
   (+++) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `co` b) `k` (c `co` d))
 
 -- TODO: Explore whether to keep both Monoidal and Comonoidal or have one class
 -- with two instances per category, which requires dropping the functional
--- dependencies k -> p and k -> co. (The name "Comonoidal" is already iffy.)
--- Without this unification, we'll also need to duplicate Associative and
--- Symmetric for coproducts. If we drop the functional dependencies, revisit
--- uses of UndecidableInstances. Questions:
+-- dependencies k -> p and k -> co. (The name "Comonoidal" is already iffy.) If
+-- we drop the functional dependencies, revisit uses of UndecidableInstances.
+-- Currently Associative and Symmetric do not have Monoidal a superclass and so
+-- can be used for both products and coproducts. Questions:
 --
 -- *  Is type inference manageable without these functional dependencies?
 -- *  What to call the operation that unifies (***) and (+++)?
@@ -262,6 +268,18 @@ instance Cartesian (->) (:*) where
 
 instance Comonoidal (->) (:+) where
   (+++) = (A.+++)
+
+instance Associative (->) (:+) where
+  lassoc (Left a) = Left (Left a)
+  lassoc (Right (Left b)) = Left (Right b)
+  lassoc (Right (Right c)) = Right c
+  rassoc (Left (Left a)) = Left a
+  rassoc (Left (Right b)) = Right (Left b)
+  rassoc (Right c) = Right (Right c)
+
+instance Symmetric (->) (:+) where
+  swap (Left a) = Right a
+  swap (Right b) = Left b
 
 instance Cocartesian (->) (:+) where
   inl = P.Left
