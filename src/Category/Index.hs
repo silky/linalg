@@ -46,30 +46,30 @@ instance Category k => Category (Indexed k) where
 
 -- The logarithm of a product is the sum of the logarithms.
 
-instance Monoidal k (:*:) => Monoidal (Indexed k) (:+) where
+instance Monoidal (:*:) k => Monoidal (:+) (Indexed k) where
   Indexed f *** Indexed g = Indexed (f *** g)
 
-instance Associative k (:*:) => Associative (Indexed k) (:+) where
+instance Associative (:*:) k => Associative (:+) (Indexed k) where
   lassoc = Indexed lassoc
   rassoc = Indexed rassoc
 
-instance Symmetric k (:*:) => Symmetric (Indexed k) (:+) where
+instance Symmetric (:*:) k => Symmetric (:+) (Indexed k) where
   swap = Indexed swap
 
-instance Cartesian k (:*:) => Cartesian (Indexed k) (:+) where
+instance Cartesian (:*:) k => Cartesian (:+) (Indexed k) where
   exl = Indexed exl
   exr = Indexed exr
   dup = Indexed dup
 
-instance Comonoidal k (:*:) => Comonoidal (Indexed k) (:+) where
+instance Comonoidal (:*:) k => Comonoidal (:+) (Indexed k) where
   Indexed f +++ Indexed g = Indexed (f +++ g)
 
-instance Cocartesian k (:*:) => Cocartesian (Indexed k) (:+) where
+instance Cocartesian (:*:) k => Cocartesian (:+) (Indexed k) where
   inl = Indexed inl
   inr = Indexed inr
   jam = Indexed jam
 
-instance Biproduct k (:*:) => Biproduct (Indexed k) (:+)
+instance Biproduct (:*:) k => Biproduct (:+) (Indexed k)
 
 -- TODO: generalize from (:*:) and (:+).
 
@@ -77,7 +77,7 @@ instance Biproduct k (:*:) => Biproduct (Indexed k) (:+)
 
 type RepX r i = Rep r :* i
 
-instance MonoidalR k r (:.:) => MonoidalR (Indexed k) r RepX where
+instance MonoidalR r (:.:) k => MonoidalR r RepX (Indexed k) where
   cross (fmap unIndexed -> fs) = Indexed (cross fs)
 
 -- Hm. Needs unsaturated type synonym. We could make RepX a data type or
