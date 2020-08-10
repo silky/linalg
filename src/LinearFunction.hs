@@ -6,13 +6,7 @@
 
 module LinearFunction where
 
-import Prelude hiding (id,(.),(+),(*),sum)
-
-import GHC.Generics (Par1(..),(:*:)(..),(:.:)(..))
-import Data.Functor.Rep
-
-import Misc
-import Category
+import CatPrelude
 
 -- | Linear functions
 newtype L (s :: *) a b = L { unF :: a s -> b s }
