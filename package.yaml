@@ -13,15 +13,16 @@ description:         Please see the README on GitHub at <https://github.com/cona
 default-extensions:
   - CPP
   - ConstraintKinds
-  # - DefaultSignatures
+  - DefaultSignatures
   # - DeriveFoldable
   - DeriveFunctor
   - DeriveGeneric
+  - DerivingVia
   - FlexibleContexts
   - FlexibleInstances
   - FunctionalDependencies
   - GADTs
-  # - GeneralizedNewtypeDeriving
+  - GeneralizedNewtypeDeriving
   - InstanceSigs
   # - LambdaCase
   - MultiParamTypeClasses
@@ -29,7 +30,7 @@ default-extensions:
   - PatternSynonyms
   - QuantifiedConstraints
   - RankNTypes
-  # - StandaloneDeriving
+  - StandaloneDeriving
   # - TupleSections
   - TypeApplications
   - TypeFamilies
@@ -46,10 +47,11 @@ ghc-options:
 library:
   dependencies:
     - base
-    - ghc-prim  # GHC.Types (Constraint)
-    - constraints  # Experiment
+    - ghc-prim
+    - constraints
     - distributive
     - adjunctions
+    - newtype-generics
   other-modules: []
   source-dirs: src
   exposed-modules:
@@ -59,3 +61,8 @@ library:
     - InductiveMatrix # coming
     - LinAlg          # going
     - CatPrelude
+    - Category.Opposite
+    - Category.Isomorphism
+    - Category.Index
+    - Category.Constraint
+    - Category.Semiring

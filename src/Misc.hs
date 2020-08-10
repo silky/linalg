@@ -8,10 +8,13 @@ import qualified Prelude as P
 import Prelude hiding ((+),sum,(*),unzip)
 import GHC.Types (Constraint)
 import GHC.Generics ((:*:)(..))
+import Control.Newtype.Generics
 
 import Data.Functor.Rep
 
--- More convenient type notation
+-------------------------------------------------------------------------------
+-- | More convenient type notation
+-------------------------------------------------------------------------------
 
 infixl 7 :*
 type (:*)  = (,)
@@ -20,7 +23,9 @@ infixl 6 :+
 type (:+)  = Either
 
 
--- Constraint helpers
+-------------------------------------------------------------------------------
+-- | Constraint helpers
+-------------------------------------------------------------------------------
 
 #if 1
 -- Experiment. Smaller Core?
@@ -40,7 +45,9 @@ type C6 con a b c d e f = (C3 con a b c, C3 con d e f)
 #endif
 
 
--- Semirings
+-------------------------------------------------------------------------------
+-- | Semirings
+-------------------------------------------------------------------------------
 
 class Additive a where
   infixl 6 +
@@ -73,7 +80,19 @@ infixl 6 +^
 (+^) :: (Representable f, Additive s) => f s -> f s -> f s
 (+^) = liftR2 (+)
 
--- GHC.Generics utilities
+-- | Vector scaling
+infixl 7 *^
+(*^) :: (Functor f, Semiring s) => s -> f s -> f s
+s *^ a = (s *) <$> a
+
+-- s *^ a = fmap (s *) a
+-- (*^) s = fmap (s *)
+-- (*^) = fmap . (*)
+
+
+-------------------------------------------------------------------------------
+-- | GHC.Generics utilities
+-------------------------------------------------------------------------------
 
 -- Natural transformation
 infixl 1 -->
@@ -94,8 +113,63 @@ curryF f a b = f (a :*: b)
 uncurryF :: (a s -> b s -> c s) -> ((a :*: b) s -> c s)
 uncurryF g (a :*: b) = g a b
 
--- Miscellany
+-------------------------------------------------------------------------------
+-- | Newtype helpers
+-------------------------------------------------------------------------------
+
+-- Type generalization of underF from newtype-generics.
+underF :: (Newtype n, Newtype n', o' ~ O n', o ~ O n, Functor f, Functor g)
+       => (o -> n) -> (f n -> g n') -> (f o -> g o')
+underF _ f = fmap unpack . f . fmap pack
+{-# INLINE underF #-}
+
+-- Type generalization of overF from newtype-generics.
+overF :: (Newtype n, Newtype n', o' ~ O n', o ~ O n, Functor f, Functor g)
+      => (o -> n) -> (f o -> g o') -> (f n -> g n')
+overF _ f = fmap pack . f . fmap unpack
+{-# INLINE overF #-}
+
+inNew :: (Newtype p, Newtype q) =>
+         (O p -> O q) -> (p -> q)
+inNew = pack <~ unpack
+{-# INLINE inNew #-}
+
+inNew2 :: (Newtype p, Newtype q, Newtype r) =>
+          (O p -> O q -> O r) -> (p -> q -> r)
+inNew2 = inNew <~ unpack
+{-# INLINE inNew2 #-}
+
+-- TODO: inNew3, etc.
+
+exNew :: (Newtype p, Newtype q) =>
+         (p -> q) -> (O p -> O q)
+exNew = unpack <~ pack
+{-# INLINE exNew #-}
+
+exNew2 :: (Newtype p, Newtype q, Newtype r) =>
+          (p -> q -> r) -> (O p -> O q -> O r)
+exNew2 = exNew <~ pack
+{-# INLINE exNew2 #-}
+
+-------------------------------------------------------------------------------
+-- | Miscellany
+-------------------------------------------------------------------------------
 
 unzip :: Functor f => f (a :* b) -> f a :* f b
 unzip ps = (fst <$> ps, snd <$> ps)
 
+infixl 1 <~
+infixr 1 ~>
+
+-- | Add pre- and post-processing
+(~>) :: forall a b a' b'. (a' -> a) -> (b -> b') -> ((a -> b) -> (a' -> b'))
+(f ~> h) g = h . g . f
+-- (~>) = flip (<~)
+{-# INLINE (~>) #-}
+
+-- | Add post- and pre-processing
+(<~) :: forall a b a' b'. (b -> b') -> (a' -> a) -> ((a -> b) -> (a' -> b'))
+(h <~ f) g = h . g . f
+{-# INLINE (<~) #-}
+
+-- TODO: Maybe move (<~) and (~>) to Category and generalize from (->)to any category.

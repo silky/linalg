@@ -7,33 +7,34 @@
 module LinearFunction where
 
 import CatPrelude
+import Category.Isomorphism
 
 -- | Linear functions
 newtype L (s :: *) a b = L { unF :: a s -> b s }
 
 instance Category (L s) where
-  type Obj' (L s) = Representable 
+  type Obj' (L s) = Representable
   id = L id
   L g . L f = L (g . f)
 
-instance Monoidal (L s) (:*:) where
+instance Monoidal (:*:) (L s) where
   L f *** L g = L (\ (a :*: b) -> f a :*: g b)
 
-instance Cartesian (L s) (:*:) where
+instance Cartesian (:*:) (L s) where
   exl = L exlF
   exr = L exrF
   dup = L dupF
 
-instance Comonoidal (L s) (:*:) where (+++) = (***)
+instance Comonoidal (:*:) (L s) where (+++) = (***)
 
-instance Additive s => Cocartesian (L s) (:*:) where
+instance Additive s => Cocartesian (:*:) (L s) where
   inl = L (:*: zeroV)
   inr = L (zeroV :*:)
   jam = L (uncurryF (+^))
 
-instance Additive s => Biproduct (L s) (:*:)
+instance Additive s => Biproduct (:*:) (L s)
 
-instance Representable r => MonoidalR (L s) r (:.:) where
+instance Representable r => MonoidalR r (:.:) (L s) where
   cross :: Obj2 (L s) a b => r (L s a b) -> L s (r :.: a) (r :.: b)
   cross fs = L (Comp1 . liftR2 unF fs . unComp1)
 
@@ -45,17 +46,17 @@ Comp1 . liftR2 unF fs . unComp1 :: (r :.: a) s -> (r :.: b) s
 cross = L . inNew (liftR2 unF)
 #endif
 
-instance Representable r => CartesianR (L s) r (:.:) where
+instance Representable r => CartesianR r (:.:) (L s) where
   exs :: Obj (L s) a => r (L s (r :.: a) a)
   exs = tabulate (\ i -> L (\ (Comp1 as) -> as `index` i))
   dups :: Obj (L s) a => L s a (r :.: a)
   dups = L (Comp1 . pureRep)
 
-instance Representable r => ComonoidalR (L s) r (:.:) where
+instance Representable r => ComonoidalR r (:.:) (L s) where
   plus = cross
 
 instance (Additive s, Representable r, Eq (Rep r), Foldable r)
-      => CocartesianR (L s) r (:.:) where
+      => CocartesianR r (:.:) (L s) where
   ins :: Obj (L s) a => r (L s a (r :.: a))
   ins = tabulate (L . oneHot)
         -- tabulate $ \ i -> L (oneHot i)
@@ -80,14 +81,43 @@ instance Scalable L where
 
 class LinearMap l where
   -- | Semantic function for all linear map representations. Correctness of
-  -- every operation on every representation is specified by requiring that mu
-  -- is homomorphic for (distributes over) that operation. For instance, mu must
-  -- be a functor (Category homomorphism).
-  mu  :: Obj2 (l s) a b => l s a b -> L s a b
-  -- | Inverse of mu
-  mu' :: Obj2 (l s) a b => L s a b -> l s a b
+  -- every operation on every representation is specified by requiring mu to be
+  -- homomorphic for (distributes over) that operation. For instance, mu must be
+  -- a functor (Category homomorphism).
+  mu :: (Obj2 (L s) a b, Obj2 (l s) a b) => l s a b <-> L s a b
+
+-- TODO: maybe generalize so that LHS and RHS objects needn't match. In other
+-- words, the mu functor can have non-identity object maps.
+
+-- Note that scale, join2, fork2, join, and fork (the basic building blocks of
+-- linear maps) are all linear isomorphisms. With a little help, we can combine
+-- them into a single isomorphism. That help can be something that combines five
+-- arrows having signatures matching those building blocks into a single arrow.
 
 -- Trivial instance
-instance LinearMap L where
-  mu  = id
-  mu' = id
+instance LinearMap L where mu = id
+
+-------------------------------------------------------------------------------
+-- | Vector/map isomorphisms
+-------------------------------------------------------------------------------
+
+dot :: (Representable a, Foldable a, Semiring s) => a s -> (a s -> s)
+u `dot` v = sum (liftR2 (*) u v)
+
+undot :: (Functor a, Semiring s) => a s -> (s -> a s)
+undot = flip (*^)
+
+dotIso :: (Representable a, Foldable a, Semiring s) => a s -> (a s <-> s)
+dotIso a = dot a :<-> undot a
+
+-- Convert vector to vector-to-scalar linear map ("dual vector")
+toScalar :: (Representable a, Foldable a, Semiring s) => a s -> L s a Par1
+toScalar a = L (Par1 . dot a)
+
+-- TODO: generalize dot from Semiring to Category
+
+-- Convert vector to scalar-to-vector linear map ("dual vector")
+fromScalar :: (Functor a, Semiring s) => a s -> L s Par1 a
+-- fromScalar a = L (\ (Par1 s) -> s *^ a)
+-- fromScalar a = L (\ (Par1 s) -> undot a s)
+fromScalar a = L (undot a . unPar1)
