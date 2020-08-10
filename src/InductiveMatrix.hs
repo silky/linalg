@@ -16,7 +16,9 @@ import Data.Functor.Rep
 
 import Misc
 import Category
+import qualified LinearFunction as F
 import LinearFunction hiding (L)
+import Category.Isomorphism
 
 -------------------------------------------------------------------------------
 -- | Representation and its denotation
@@ -37,12 +39,30 @@ data L :: * -> (* -> *) -> (* -> *) -> * where
   ForkL :: C3 V a b r => r (L s a b) -> L s a (r :.: b)
 
 instance LinearMap L where
-  mu (Scale s)  = scale s
-  mu (f :|# g)  = mu f ||| mu g
-  mu (f :&# g)  = mu f &&& mu g
-  mu (JoinL fs) = join (mu <$> fs)
-  mu (ForkL fs) = fork (mu <$> fs)
-  mu' = error "TODO: implement mu' on L"
+  mu = fwd :<-> rev
+   where
+     fwd :: L s a b -> F.L s a b
+     fwd (Scale s)  = scale s
+     fwd (f :|# g)  = fwd f ||| fwd g
+     fwd (f :&# g)  = fwd f &&& fwd g
+     fwd (JoinL fs) = join (fwd <$> fs)
+     fwd (ForkL fs) = fork (fwd <$> fs)
+     rev = error "TODO: implement reverse mu on L"
+
+-- TODO: rebuild this fwd definition by composing isomorphisms, eliminating the
+-- explicit fwd/rev split. This fwd definition is already built from invertible
+-- operations (including scale and fmap of an invertible operation). Dan's
+-- failable patterns may be relevant. Can we do so without abstraction leak and
+-- without building in a decomposition bias?
+
+-- TODO: Generalize from F.L to all linear map representations. I guess we'll
+-- need the intersection of Obj constraints. Or is there a single Obj that all
+-- linear map representations can share (not just all _current_)? With careful
+-- choice of primitives on all linear map representations, we can probably write
+-- a single representation-polymorphic isomorphism that works for _all_ pairs of
+-- representations (not just all current). On the other hand, we could instead
+-- compose an isomorphism to F.L with an isomorphism from F.L to get the
+-- representation-polymorphic isomorphism.
 
 -------------------------------------------------------------------------------
 -- | Instances (all deducible from denotational homomorphisms)

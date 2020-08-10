@@ -13,6 +13,7 @@ import Data.Functor.Rep
 
 import Misc
 import Category
+import Category.Isomorphism
 
 -- | Linear functions
 newtype L (s :: *) a b = L { unF :: a s -> b s }
@@ -86,14 +87,13 @@ instance Scalable L where
 
 class LinearMap l where
   -- | Semantic function for all linear map representations. Correctness of
-  -- every operation on every representation is specified by requiring that mu
-  -- is homomorphic for (distributes over) that operation. For instance, mu must
-  -- be a functor (Category homomorphism).
-  mu  :: Obj2 (l s) a b => l s a b -> L s a b
-  -- | Inverse of mu
-  mu' :: Obj2 (l s) a b => L s a b -> l s a b
+  -- every operation on every representation is specified by requiring mu to be
+  -- homomorphic for (distributes over) that operation. For instance, mu must be
+  -- a functor (Category homomorphism).
+  mu :: (Obj2 (L s) a b, Obj2 (l s) a b) => l s a b <-> L s a b
+
+-- TODO: maybe generalize so that LHS and RHS objects needn't match. In other
+-- words, the mu functor can have non-identity object maps.
 
 -- Trivial instance
-instance LinearMap L where
-  mu  = id
-  mu' = id
+instance LinearMap L where mu = id
