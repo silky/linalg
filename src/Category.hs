@@ -16,7 +16,6 @@ import GHC.Generics (Generic,Generic1)
 import qualified Control.Arrow as A
 import Data.Distributive
 import Data.Functor.Rep
--- import qualified Data.Tuple as T
 
 import Misc
 
@@ -130,20 +129,41 @@ pattern f :& g <- (unfork2 -> (f,g)) where (:&) = (&&&)
 --
 -- Instead, give a typed COMPLETE pragma with each cartesian category instance.
 
+#define AssociativeDefaultCartesian
+
 class Associative k p where
   lassoc :: Obj3 k a b c => (a `p` (b `p` c)) `k` ((a `p` b) `p` c)
   rassoc :: Obj3 k a b c => ((a `p` b) `p` c) `k` (a `p` (b `p` c))
+  -- GHC lets us default via Cartesian or Cocartesian, but not both. We could
+  -- split Associative (and Symmetric) into product and coproduct variants to
+  -- get both defaults.
+#ifdef AssociativeDefaultCartesian
   default lassoc :: (Cartesian k p, Obj3 k a b c)
                  => (a `p` (b `p` c)) `k` ((a `p` b) `p` c)
   lassoc = second exl &&& (exr . exr)
   default rassoc :: (Cartesian k p, Obj3 k a b c)
                  => ((a `p` b) `p` c) `k` (a `p` (b `p` c))
   rassoc = (exl . exl) &&& first  exr
+#else
+  default lassoc :: (Cocartesian k p, Obj3 k a b c)
+                 => (a `p` (b `p` c)) `k` ((a `p` b) `p` c)
+  lassoc = inl.inl ||| (inl.inr ||| inr)
+  default rassoc :: (Cocartesian k p, Obj3 k a b c)
+                 => ((a `p` b) `p` c) `k` (a `p` (b `p` c))
+  rassoc = (inl ||| inr.inl) ||| inr.inr
+#endif
+
+-- #define SymmetricDefaultCartesian
 
 class Symmetric k p where
   swap :: Obj2 k a b => (a `p` b) `k` (b `p` a)
+#ifdef SymmetricDefaultCartesian
   default swap :: (Cartesian k p, Obj2 k a b) => (a `p` b) `k` (b `p` a)
   swap = exr &&& exl
+#else
+  default swap :: (Cocartesian k p, Obj2 k a b) => (a `p` b) `k` (b `p` a)
+  swap = inr ||| inl
+#endif
 
 -- TODO: Maybe split Symmetric into Braided and Symmetric, with the latter
 -- having an extra law. Maybe Associative as Braided superclass. See
@@ -269,11 +289,15 @@ instance Monoidal (->) (:*) where
   (***) = (A.***)
 
 instance Associative (->) (:*) where
-  -- lassoc (a,(b,c)) = ((a,b),c)
-  -- rassoc ((a,b),c) = (a,(b,c))
+#ifndef AssociativeDefaultCartesian
+  lassoc (a,(b,c)) = ((a,b),c)
+  rassoc ((a,b),c) = (a,(b,c))
+#endif
 
 instance Symmetric (->) (:*) where
-  -- swap = T.swap
+#ifndef SymmetricDefaultCartesian
+  swap (a,b) = (b,a)
+#endif
 
 instance Cartesian (->) (:*) where
   exl = fst
@@ -284,16 +308,20 @@ instance Comonoidal (->) (:+) where
   (+++) = (A.+++)
 
 instance Associative (->) (:+) where
+#ifdef AssociativeDefaultCartesian
   lassoc (Left a) = Left (Left a)
   lassoc (Right (Left b)) = Left (Right b)
   lassoc (Right (Right c)) = Right c
   rassoc (Left (Left a)) = Left a
   rassoc (Left (Right b)) = Right (Left b)
   rassoc (Right c) = Right (Right c)
+#endif
 
 instance Symmetric (->) (:+) where
+#ifdef SymmetricDefaultCartesian
   swap (Left a) = Right a
   swap (Right b) = Left b
+#endif
 
 instance Cocartesian (->) (:+) where
   inl = P.Left

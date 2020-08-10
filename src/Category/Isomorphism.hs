@@ -36,6 +36,9 @@ instance Associative k p => Associative (Iso k) p where
 instance Symmetric k p => Symmetric (Iso k) p where
   swap = swap :<-> swap
 
+-- We cannot use the default definitions for Associative and Symmetric, because
+-- Iso k is not cartesian.
+
 instance Monoidal k p => Monoidal (Iso k) p where
   (f :<-> f') *** (g :<-> g') = (f *** g) :<-> (f' *** g')
 
