@@ -57,6 +57,7 @@ library:
   exposed-modules:
     - Misc
     - Category
+    - Orphans
     - LinearFunction
     - InductiveMatrix # coming
     - LinAlg          # going

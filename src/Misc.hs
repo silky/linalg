@@ -7,7 +7,7 @@ module Misc where
 import qualified Prelude as P
 import Prelude hiding ((+),sum,(*),unzip)
 import GHC.Types (Constraint)
-import GHC.Generics ((:*:)(..))
+import GHC.Generics ((:*:)(..),(:+:)(..))
 import Control.Newtype.Generics
 
 import Data.Functor.Rep
@@ -107,6 +107,16 @@ exrF (_ :*: b) = b
 dupF :: a --> a :*: a
 dupF a = a :*: a
 
+inlF :: a --> a :+: b
+inlF a = L1 a
+
+inrF :: b --> a :+: b
+inrF a = R1 a
+
+eitherF :: (a t -> c) -> (b t -> c) -> ((a :+: b) t -> c)
+eitherF f _ (L1 a) = f a
+eitherF _ g (R1 b) = g b
+
 curryF :: ((a :*: b) s -> c s) -> (a s -> b s -> c s)
 curryF f a b = f (a :*: b)
 
@@ -173,3 +183,6 @@ infixr 1 ~>
 {-# INLINE (<~) #-}
 
 -- TODO: Maybe move (<~) and (~>) to Category and generalize from (->)to any category.
+
+class    Unconstrained a
+instance Unconstrained a

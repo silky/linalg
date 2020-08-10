@@ -10,7 +10,7 @@ import CatPrelude
 import Category.Isomorphism
 
 -- | Linear functions
-newtype L (s :: *) a b = L { unF :: a s -> b s }
+newtype L (s :: *) a b = L { unL :: a s -> b s }
 
 instance Category (L s) where
   type Obj' (L s) = Representable
@@ -36,14 +36,14 @@ instance Additive s => Biproduct (:*:) (L s)
 
 instance Representable r => MonoidalR r (:.:) (L s) where
   cross :: Obj2 (L s) a b => r (L s a b) -> L s (r :.: a) (r :.: b)
-  cross fs = L (Comp1 . liftR2 unF fs . unComp1)
+  cross fs = L (Comp1 . liftR2 unL fs . unComp1)
 
 #if 0
                    fs :: r (L s a b)
-        liftR2 unF fs :: r (a s) -> r (b s)
-Comp1 . liftR2 unF fs . unComp1 :: (r :.: a) s -> (r :.: b) s
+        liftR2 unL fs :: r (a s) -> r (b s)
+Comp1 . liftR2 unL fs . unComp1 :: (r :.: a) s -> (r :.: b) s
 
-cross = L . inNew (liftR2 unF)
+cross = L . inNew (liftR2 unL)
 #endif
 
 instance Representable r => CartesianR r (:.:) (L s) where
@@ -77,7 +77,7 @@ class Scalable l where
   scale :: Semiring s => s -> l s Par1 Par1
 
 instance Scalable L where
-  scale s = L (fmap (s *))   -- L (\ (Par1 s') -> Par1 (s * s'))
+  scale s = L (s *^)
 
 class LinearMap l where
   -- | Semantic function for all linear map representations. Correctness of
@@ -102,22 +102,113 @@ instance LinearMap L where mu = id
 -------------------------------------------------------------------------------
 
 dot :: (Representable a, Foldable a, Semiring s) => a s -> (a s -> s)
-u `dot` v = sum (liftR2 (*) u v)
+dot u v = sum (liftR2 (*) u v)
 
-undot :: (Functor a, Semiring s) => a s -> (s -> a s)
-undot = flip (*^)
+dot' :: (Representable a, Eq (Rep a), Semiring s) => (a s -> s) -> a s
+dot' f = f <$> basis
 
-dotIso :: (Representable a, Foldable a, Semiring s) => a s -> (a s <-> s)
-dotIso a = dot a :<-> undot a
+-- Basis vectors / identity matrix
+basis :: (Representable a, Eq (Rep a), Semiring s) => a (a s)
+basis = tabulate (\ i -> tabulate (\ j -> if i == j then one else zero))
+
+dotIso :: (Representable a, Eq (Rep a), Foldable a, Semiring s) => a s <-> (a s -> s)
+dotIso = dot :<-> dot'
+
+-- TODO: prove that dot & dot' are inverses
+
+-- TODO: basis vs oneHot
 
 -- Convert vector to vector-to-scalar linear map ("dual vector")
 toScalar :: (Representable a, Foldable a, Semiring s) => a s -> L s a Par1
 toScalar a = L (Par1 . dot a)
 
+toScalar' :: (Representable a, Eq (Rep a), Semiring s) => L s a Par1 -> a s
+toScalar' f = dot' (unPar1 . unL f)
+
+#if 0
+  toScalar' (toScalar a)
+= toScalar' (L (Par1 . dot a))
+= dot' (unPar1 . unL (L (Par1 . dot a)))
+= dot' (unPar1 . Par1 . dot a)
+= dot' (dot a)
+= a
+
+  toScalar (toScalar' f)
+= toScalar (dot' (unPar1 . unL f))
+= toScalar (dot' (unPar1 . unL f))
+= L (Par1 . dot (dot' (unPar1 . unL f)))
+= L (Par1 . unPar1 . unL f)
+= L (unL f)
+= f
+#endif
+
+toScalarIso :: (Representable a, Eq (Rep a), Foldable a, Semiring s)
+            => a s <-> L s a Par1
+toScalarIso = toScalar :<-> toScalar'
+
+-- TODO: build toScalarIso from isomorphisms rather than from explicit (:<->).
+-- Probably use dom & cod from Closed (not yet in Category).
+
 -- TODO: generalize dot from Semiring to Category
 
 -- Convert vector to scalar-to-vector linear map ("dual vector")
 fromScalar :: (Functor a, Semiring s) => a s -> L s Par1 a
--- fromScalar a = L (\ (Par1 s) -> s *^ a)
--- fromScalar a = L (\ (Par1 s) -> undot a s)
-fromScalar a = L (undot a . unPar1)
+fromScalar a = L ((*^ a) . unPar1)
+
+fromScalar' :: Semiring s => L s Par1 a -> a s
+fromScalar' (L f) = f (Par1 one)
+
+fromScalarIso :: (Functor a, Semiring s) => a s <-> L s Par1 a
+fromScalarIso = fromScalar :<-> fromScalar'
+
+-- toScalar' is very expensive! The data representations are much more efficient.
+
+#if 0
+-- Isomorphism proofs
+
+  (fromScalar' . fromScalar) a
+= fromScalar' (fromScalar a)
+= fromScalar' (L (*^ a) . unPar1)
+= ((*^ a) . unPar1) (Par1 one)
+= (*^ a) (unPar1 (Par1 one))
+= (*^ a) one
+= one *^ a
+= (one *) <$> a
+= id <$> a
+= id <$> a
+= a
+
+  (fromScalar . fromScalar') (L f)
+= fromScalar (fromScalar' (L f))
+= fromScalar (f (Par1 one))
+= L ((*^ (f (Par1 one))) . unPar1)
+= L (\ (Par1 s) -> (*^ (f (Par1 one))) (unPar1 (Par1 s)))
+= L (\ (Par1 s) -> (*^ (f (Par1 one))) s)
+= L (\ (Par1 s) -> s *^ f (Par1 one))
+= L (\ (Par1 s) -> f (s *^ Par1 one))
+= L (\ (Par1 s) -> f (Par1 s))
+= L f
+
+-- TODO: build fromScalarIso from isomorphisms rather than from explicit (:<->).
+
+#endif
+
+scaleIso :: Semiring s => s <-> L s Par1 Par1
+scaleIso = scale :<-> unscale
+
+unscale :: Semiring s => L s Par1 Par1 -> s
+unscale = unPar1 . toScalar'
+
+-- unscale (L f) = exNew f one -- unPar1 (f (Par1 one))
+
+-------------------------------------------------------------------------------
+-- | Some "products", defined in terms of composition
+-------------------------------------------------------------------------------
+
+inner :: (Representable a, Foldable a, Semiring s) => a s -> a s -> s
+inner b a = unscale (toScalar b . fromScalar a)
+
+outer :: (Representable a, Foldable a, Representable b, Semiring s)
+      => b s -> a s -> L s a b
+outer b a = fromScalar b . toScalar a
+
