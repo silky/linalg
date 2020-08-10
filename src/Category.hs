@@ -14,9 +14,9 @@ import Prelude hiding (id,(.))
 import GHC.Types (Constraint)
 import GHC.Generics (Generic,Generic1)
 import qualified Control.Arrow as A
-import qualified Data.Tuple as T
 import Data.Distributive
 import Data.Functor.Rep
+-- import qualified Data.Tuple as T
 
 import Misc
 
@@ -142,6 +142,8 @@ class Associative k p where
 
 class Symmetric k p where
   swap :: Obj2 k a b => (a `p` b) `k` (b `p` a)
+  default swap :: (Cartesian k p, Obj2 k a b) => (a `p` b) `k` (b `p` a)
+  swap = exr &&& exl
 
 -- TODO: Maybe split Symmetric into Braided and Symmetric, with the latter
 -- having an extra law. Maybe Associative as Braided superclass. See
@@ -271,7 +273,7 @@ instance Associative (->) (:*) where
   -- rassoc ((a,b),c) = (a,(b,c))
 
 instance Symmetric (->) (:*) where
-  swap = T.swap
+  -- swap = T.swap
 
 instance Cartesian (->) (:*) where
   exl = fst
