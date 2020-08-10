@@ -60,9 +60,9 @@ library:
     - LinearFunction
     - InductiveMatrix # coming
     - LinAlg          # going
+    - CatPrelude
     - Category.Opposite
     - Category.Isomorphism
     - Category.Index
     - Category.Constraint
     - Category.Semiring
-||||||| merged common ancestors

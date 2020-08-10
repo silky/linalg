@@ -8,7 +8,7 @@ module Category.Constraint where
 
 import Data.Constraint
 
-import Category
+import CatPrelude
 
 instance Category (:-) where
   id  = refl

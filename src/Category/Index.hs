@@ -6,13 +6,7 @@
 
 module Category.Index where
 
--- import qualified Prelude as P
-import Prelude hiding (id,(.))
-import GHC.Generics ((:*:),(:.:),Par1)
-import Data.Functor.Rep
-
-import Misc
-import Category
+import CatPrelude
 
 -- Trie functors
 class (Representable (Trie i), Rep (Trie i) ~ i) => HasTrie i where

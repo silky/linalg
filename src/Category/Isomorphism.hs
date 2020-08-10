@@ -6,14 +6,11 @@
 
 module Category.Isomorphism where
 
-import Prelude hiding (id,(.))
 import qualified GHC.Generics as G
 import GHC.Exts (Coercible,coerce)
-import Data.Functor.Rep (Representable(..))
 import Control.Newtype.Generics
 
-import Misc
-import Category
+import CatPrelude
 
 -------------------------------------------------------------------------------
 -- | Representation

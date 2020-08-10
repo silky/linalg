@@ -6,9 +6,7 @@
 
 module Category.Opposite where
 
-import Prelude hiding (id,(.))
-
-import Category
+import CatPrelude
 
 newtype Op k a b = Op { unOp :: b `k` a }
 

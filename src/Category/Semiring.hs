@@ -2,9 +2,7 @@
 
 module Category.Semiring where
 
-import Prelude hiding ((+),(*))
-import Misc
-import Category
+import CatPrelude
 
 newtype SemiringCat s a b = S s
 

@@ -11,6 +11,7 @@ module InductiveMatrix where
 
 import CatPrelude
 
+import qualified LinearFunction as F
 import LinearFunction hiding (L)
 import Category.Isomorphism
 
