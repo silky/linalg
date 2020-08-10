@@ -17,44 +17,44 @@ instance Category k => Category (Op k) where
   id = Op id
   Op g . Op f = Op (f . g)
 
-instance Comonoidal k co => Monoidal (Op k) co where
+instance Comonoidal co k => Monoidal co (Op k) where
   Op f *** Op g = Op (f +++ g)
 
-instance Associative k p => Associative (Op k) p where
+instance Associative p k => Associative p (Op k) where
   lassoc = Op rassoc
   rassoc = Op lassoc
 
-instance Symmetric k p => Symmetric (Op k) p where
+instance Symmetric p k => Symmetric p (Op k) where
   swap = Op swap
 
-instance Cocartesian k co => Cartesian (Op k) co where
+instance Cocartesian co k => Cartesian co (Op k) where
   exl = Op inl
   exr = Op inr
   dup = Op jam
 
-instance Monoidal k p => Comonoidal (Op k) p where
+instance Monoidal p k => Comonoidal p (Op k) where
   Op f +++ Op g = Op (f *** g)
 
-instance Cartesian k p => Cocartesian (Op k) p where
+instance Cartesian p k => Cocartesian p (Op k) where
   inl = Op exl
   inr = Op exr
   jam = Op dup
 
-instance ComonoidalR k r p => MonoidalR (Op k) r p where
+instance ComonoidalR r p k => MonoidalR r p (Op k) where
   cross (fmap unOp -> fs) = Op (plus fs)
 
-instance MonoidalR k r p => ComonoidalR (Op k) r p where
+instance MonoidalR r p k => ComonoidalR r p (Op k) where
   plus (fmap unOp -> fs) = Op (cross fs)
 
-instance CocartesianR k r p => CartesianR (Op k) r p where
+instance CocartesianR r p k => CartesianR r p (Op k) where
   exs  = Op <$> ins
   dups = Op jams
 
-instance CartesianR k r p => CocartesianR (Op k) r p where
+instance CartesianR r p k => CocartesianR r p (Op k) where
   ins  = Op <$> exs
   jams = Op dups
 
-instance BiproductR k r p => BiproductR (Op k) r p
+instance BiproductR r p k => BiproductR r p (Op k)
 
 
 -- Illegal instance declaration for ‘Monoidal (Op k) co’
