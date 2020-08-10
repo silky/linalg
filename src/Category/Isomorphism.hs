@@ -7,13 +7,23 @@
 module Category.Isomorphism where
 
 import Prelude hiding (id,(.))
+import qualified GHC.Generics as G
+import GHC.Exts (Coercible,coerce)
+import Data.Functor.Rep (Representable(..))
+import Control.Newtype.Generics
 
 import Misc
 import Category
 
+-------------------------------------------------------------------------------
+-- | Representation
+-------------------------------------------------------------------------------
+
 infix 0 :<->
+-- | Isomorphism
 data Iso k a b = (:<->) { isoFwd :: a `k` b, isoRev :: b `k` a }
 
+-- | Inverse isomorphism
 inv :: Iso k a b -> Iso k b a
 inv (f :<-> f') = f' :<-> f
 
@@ -23,6 +33,10 @@ involution f = f :<-> f
 
 infix 0 <->
 type (<->) = Iso (->)
+
+-------------------------------------------------------------------------------
+-- | As a category
+-------------------------------------------------------------------------------
 
 instance Category k => Category (Iso k) where
   type Obj' (Iso k) = Obj k
@@ -42,6 +56,15 @@ instance Symmetric k p => Symmetric (Iso k) p where
 instance Monoidal k p => Monoidal (Iso k) p where
   (f :<-> f') *** (g :<-> g') = (f *** g) :<-> (f' *** g')
 
+-- Illegal instance declaration for ‘Monoidal (Iso k) p’
+--   The coverage condition fails in class ‘Monoidal’
+--     for functional dependency: ‘k -> p’
+--   Reason: lhs type ‘Iso k’ does not determine rhs type ‘p’
+--   Un-determined variable: p
+--   Using UndecidableInstances might help
+--
+-- TODO: revisit after monkeying with the Monoidal class.
+
 instance Comonoidal k co => Comonoidal (Iso k) co where
   (f :<-> f') +++ (g :<-> g') = (f +++ g) :<-> (f' +++ g')
 
@@ -52,6 +75,10 @@ instance UnitCat k => UnitCat (Iso k) where
   lcounit = lcounit :<-> lunit
   rcounit = rcounit :<-> runit
 #endif
+
+-------------------------------------------------------------------------------
+-- | Utilities
+-------------------------------------------------------------------------------
 
 -- | Apply one isomorphism via another
 via :: (Category k, Obj2 k a b) => Iso k b b -> Iso k a b -> Iso k a a
@@ -71,15 +98,36 @@ joinIso = join :<-> unjoin
 forkIso :: (CartesianR k r p, Obj2 k a b) => r (a `k` b) <-> (a `k` p r b)
 forkIso = fork :<-> unfork
 
--- curryIso :: (Closed k, Obj3 k a b c)
---          => ((a :* b) `k` c) <-> (a `k` (b -> c))
--- curryIso = curry :<-> uncurry
+curryIso :: ((a :* b) -> c) <-> (a -> (b -> c))
+curryIso = curry :<-> uncurry
 
+-- TODO: generalize curry from (->) to cartesian closed
 
+newIso :: Newtype a => a <-> O a
+newIso = unpack :<-> pack
 
--- Illegal instance declaration for ‘Monoidal (Iso k) p’
---   The coverage condition fails in class ‘Monoidal’
---     for functional dependency: ‘k -> p’
---   Reason: lhs type ‘Iso k’ does not determine rhs type ‘p’
---   Un-determined variable: p
---   Using UndecidableInstances might help
+repIso :: Representable f => f a <-> (Rep f -> a)
+repIso = index :<-> tabulate
+
+coerceIso :: (Coercible a b, Coercible b a) => a <-> b
+coerceIso = coerce :<-> coerce
+
+genericIso :: G.Generic a => (a <-> G.Rep a x)
+genericIso = G.from :<-> G.to
+
+generic1Iso :: G.Generic1 f => (f <--> G.Rep1 f)
+generic1Iso = G.from1 :<-> G.to1
+
+-- | Natural isomorphism
+infix 0 <-->
+type f <--> g = forall a. f a <-> g a
+
+fmapIso :: Functor f => (f <--> g) -> (a -> b) -> (g a -> g b)
+fmapIso fg h = isoFwd fg . fmap h . isoRev fg
+
+-- Don't pattern match fg, since we need two type instantiations.
+-- For instance, the following doesn't type-check:
+-- 
+--   fmapIso (fg :<-> gf) h = fg . fmap h . gf
+
+-- Is this fmapIso really the most useful and natural variant?

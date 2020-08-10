@@ -45,10 +45,11 @@ ghc-options:
 library:
   dependencies:
     - base
-    - ghc-prim  # GHC.Types (Constraint)
-    - constraints  # Experiment
+    - ghc-prim
+    - constraints
     - distributive
     - adjunctions
+    - newtype-generics
   other-modules: []
   source-dirs: src
   exposed-modules:
