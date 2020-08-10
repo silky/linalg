@@ -25,6 +25,7 @@ default-extensions:
   - InstanceSigs
   # - LambdaCase
   - MultiParamTypeClasses
+  - NoImplicitPrelude
   - PatternSynonyms
   - QuantifiedConstraints
   - RankNTypes
@@ -57,3 +58,4 @@ library:
     - LinearFunction
     - InductiveMatrix # coming
     - LinAlg          # going
+    - CatPrelude

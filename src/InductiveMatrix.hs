@@ -9,13 +9,8 @@ and José N Oliveira (Haskell Symposium 2020) [URL?]. The main differences:
 
 module InductiveMatrix where
 
-import Prelude hiding ((+),sum,(*),unzip)
+import CatPrelude
 
-import GHC.Generics (Par1(..), (:*:)(..), (:.:)(..))
-import Data.Functor.Rep
-
-import Misc
-import Category
 import LinearFunction hiding (L)
 
 -------------------------------------------------------------------------------
