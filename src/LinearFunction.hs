@@ -102,3 +102,29 @@ class LinearMap l where
 
 -- Trivial instance
 instance LinearMap L where mu = id
+
+-------------------------------------------------------------------------------
+-- | Vector/map isomorphisms
+-------------------------------------------------------------------------------
+
+dot :: (Representable a, Foldable a, Semiring s) => a s -> (a s -> s)
+u `dot` v = sum (liftR2 (*) u v)
+
+undot :: (Functor a, Semiring s) => a s -> (s -> a s)
+undot = flip (*^)
+
+dotIso :: (Representable a, Foldable a, Semiring s) => a s -> (a s <-> s)
+dotIso a = dot a :<-> undot a
+
+-- Convert vector to vector-to-scalar linear map ("dual vector")
+toScalar :: (Representable a, Foldable a, Semiring s) => a s -> L s a Par1
+toScalar a = L (Par1 . dot a)
+
+-- TODO: generalize dot from Semiring to Category
+
+-- Convert vector to scalar-to-vector linear map ("dual vector")
+fromScalar :: (Functor a, Semiring s) => a s -> L s Par1 a
+-- fromScalar a = L (\ (Par1 s) -> s *^ a)
+-- fromScalar a = L (\ (Par1 s) -> undot a s)
+fromScalar a = L (undot a . unPar1)
+
