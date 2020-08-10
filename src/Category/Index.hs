@@ -71,6 +71,7 @@ type RepX r i = Rep r :* i
 instance MonoidalR k r (:.:) => MonoidalR (Indexed k) r RepX where
   cross (fmap unIndexed -> fs) = Indexed (cross fs)
 
--- Hm. Needs unsaturated type synonym
+-- Hm. Needs unsaturated type synonym. We could make RepX a data type or
+-- newtype, but then it wouldn't be the Rep/index of functor composition.
 
 #endif
