@@ -21,14 +21,14 @@ default-extensions:
   - FlexibleInstances
   - FunctionalDependencies
   - GADTs
-  # - GeneralizedNewtypeDeriving
+  - GeneralizedNewtypeDeriving
   - InstanceSigs
   # - LambdaCase
   - MultiParamTypeClasses
   - PatternSynonyms
   - QuantifiedConstraints
   - RankNTypes
-  # - StandaloneDeriving
+  - StandaloneDeriving
   # - TupleSections
   - TypeApplications
   - TypeFamilies
@@ -61,3 +61,4 @@ library:
     - Category.Isomorphism
     - Category.Index
     - Category.Constraint
+    - Category.Semiring
