@@ -6,13 +6,7 @@
 
 module LinearFunction where
 
-import Prelude hiding (id,(.),(+),(*),sum)
-
-import GHC.Generics (Par1(..),(:*:)(..),(:.:)(..))
-import Data.Functor.Rep
-
-import Misc
-import Category
+import CatPrelude
 import Category.Isomorphism
 
 -- | Linear functions
@@ -127,4 +121,3 @@ fromScalar :: (Functor a, Semiring s) => a s -> L s Par1 a
 -- fromScalar a = L (\ (Par1 s) -> s *^ a)
 -- fromScalar a = L (\ (Par1 s) -> undot a s)
 fromScalar a = L (undot a . unPar1)
-

@@ -26,6 +26,7 @@ default-extensions:
   - InstanceSigs
   # - LambdaCase
   - MultiParamTypeClasses
+  - NoImplicitPrelude
   - PatternSynonyms
   - QuantifiedConstraints
   - RankNTypes
@@ -64,3 +65,4 @@ library:
     - Category.Index
     - Category.Constraint
     - Category.Semiring
+||||||| merged common ancestors
