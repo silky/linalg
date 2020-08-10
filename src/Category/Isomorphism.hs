@@ -119,12 +119,5 @@ generic1Iso = G.from1 :<-> G.to1
 infix 0 <-->
 type f <--> g = forall a. f a <-> g a
 
-fmapIso :: Functor f => (f <--> g) -> (a -> b) -> (g a -> g b)
-fmapIso fg h = isoFwd fg . fmap h . isoRev fg
-
--- Don't pattern match fg, since we need two type instantiations.
--- For instance, the following doesn't type-check:
---
---   fmapIso (fg :<-> gf) h = fg . fmap h . gf
-
--- Is this fmapIso really the most useful and natural variant?
+fmapIso :: Functor f => a <-> b -> f a <-> f b
+fmapIso (f :<-> g) = (fmap f :<-> fmap g)
