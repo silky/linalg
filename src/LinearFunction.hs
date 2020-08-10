@@ -205,8 +205,8 @@ unscale = unPar1 . toScalar'
 -- | Some "products", defined in terms of composition
 -------------------------------------------------------------------------------
 
-inner :: (Representable a, Foldable a, Semiring s) => a s -> a s -> s
-inner b a = unscale (toScalar b . fromScalar a)
+inner :: (Representable a, Foldable a, Semiring s) => a s -> a s -> L s Par1 Par1
+inner b a = toScalar b . fromScalar a
 
 outer :: (Representable a, Foldable a, Representable b, Semiring s)
       => b s -> a s -> L s a b
