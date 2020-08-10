@@ -2,7 +2,7 @@
 {-# LANGUAGE UndecidableSuperClasses #-} -- see below
 {-# LANGUAGE UndecidableInstances #-} -- see below
 
--- | Representable indices as objects
+-- | Logarithms (Representable indices) as objects
 
 module Category.Index where
 
@@ -44,8 +44,17 @@ instance Category k => Category (Indexed k) where
   id = Indexed id
   Indexed g . Indexed f = Indexed (g . f)
 
+-- The logarithm of a product is the sum of the logarithms.
+
 instance Monoidal k (:*:) => Monoidal (Indexed k) (:+) where
   Indexed f *** Indexed g = Indexed (f *** g)
+
+instance Associative k (:*:) => Associative (Indexed k) (:+) where
+  lassoc = Indexed lassoc
+  rassoc = Indexed rassoc
+
+instance Symmetric k (:*:) => Symmetric (Indexed k) (:+) where
+  swap = Indexed swap
 
 instance Cartesian k (:*:) => Cartesian (Indexed k) (:+) where
   exl = Indexed exl

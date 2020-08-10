@@ -14,6 +14,7 @@ import Prelude hiding (id,(.))
 import GHC.Types (Constraint)
 import GHC.Generics (Generic,Generic1)
 import qualified Control.Arrow as A
+import qualified Data.Tuple as T
 import Data.Distributive
 import Data.Functor.Rep
 
@@ -123,12 +124,26 @@ pattern f :& g <- (unfork2 -> (f,g)) where (:&) = (&&&)
 --
 -- Instead, give a typed COMPLETE pragma with each cartesian category instance.
 
+class Associative k p where
+  lassoc :: Obj3 k a b c => (a `p` (b `p` c)) `k` ((a `p` b) `p` c)
+  rassoc :: Obj3 k a b c => ((a `p` b) `p` c) `k` (a `p` (b `p` c))
+
+class Symmetric k p where
+  swap :: Obj2 k a b => (a `p` b) `k` (b `p` a)
+
 class (Category k, ObjBin k co) => Comonoidal k co | k -> co where
   infixr 2 +++
   (+++) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `co` b) `k` (c `co` d))
 
--- TODO: keep both Monoidal and Comonoidal or have one class with two instances
--- per category?
+-- TODO: Explore whether to keep both Monoidal and Comonoidal or have one class
+-- with two instances per category, which requires dropping the functional
+-- dependencies k -> p and k -> co. (The name "Comonoidal" is already iffy.)
+-- Without this unification, we'll also need to duplicate Associative and
+-- Symmetric for coproducts. If we drop the functional dependencies, revisit
+-- uses of UndecidableInstances. Questions:
+--
+-- *  Is type inference manageable without these functional dependencies?
+-- *  What to call the operation that unifies (***) and (+++)?
 
 class Comonoidal k co => Cocartesian k co where
   inl :: Obj2 k a b => a `k` (a `co` b)
@@ -232,6 +247,13 @@ instance Category (->) where
 
 instance Monoidal (->) (:*) where
   (***) = (A.***)
+
+instance Associative (->) (:*) where
+  lassoc (a,(b,c)) = ((a,b),c)
+  rassoc ((a,b),c) = (a,(b,c))
+
+instance Symmetric (->) (:*) where
+  swap = T.swap
 
 instance Cartesian (->) (:*) where
   exl = fst

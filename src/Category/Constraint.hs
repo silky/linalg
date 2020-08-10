@@ -22,6 +22,13 @@ instance (p,q) => p && q
 instance Monoidal (:-) (&&) where
   p *** q = Sub (Dict \\ p \\ q)
 
+instance Associative (:-) (&&) where
+  lassoc = Sub Dict
+  rassoc = Sub Dict
+
+instance Symmetric (:-) (&&) where
+  swap = Sub Dict
+
 instance Cartesian (:-) (&&) where
   exl = Sub Dict
   exr = Sub Dict

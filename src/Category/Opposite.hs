@@ -20,6 +20,13 @@ instance Category k => Category (Op k) where
 instance Comonoidal k co => Monoidal (Op k) co where
   Op f *** Op g = Op (f +++ g)
 
+instance Associative k p => Associative (Op k) p where
+  lassoc = Op rassoc
+  rassoc = Op lassoc
+
+instance Symmetric k p => Symmetric (Op k) p where
+  swap = Op swap
+
 instance Cocartesian k co => Cartesian (Op k) co where
   exl = Op inl
   exr = Op inr
