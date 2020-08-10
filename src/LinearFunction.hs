@@ -95,5 +95,10 @@ class LinearMap l where
 -- TODO: maybe generalize so that LHS and RHS objects needn't match. In other
 -- words, the mu functor can have non-identity object maps.
 
+-- Note that scale, join2, fork2, join, and fork (the basic building blocks of
+-- linear maps) are all linear isomorphisms. With a little help, we can combine
+-- them into a single isomorphism. That help can be something that combines five
+-- arrows having signatures matching those building blocks into a single arrow.
+
 -- Trivial instance
 instance LinearMap L where mu = id

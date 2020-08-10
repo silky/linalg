@@ -83,11 +83,11 @@ via :: (Category k, Obj2 k a b) => Iso k b b -> Iso k a b -> Iso k a a
 
 join2Iso :: (Cocartesian k co, Obj3 k a c d) 
          => (c `k` a) :* (d `k` a) <-> ((c `co` d) `k` a)
-join2Iso = uncurry (|||) :<-> unjoin2
+join2Iso = join2 :<-> unjoin2
 
 fork2Iso :: (Cartesian k p, Obj3 k a c d)
          => (a `k` c) :* (a `k` d) <-> (a `k` (c `p` d))
-fork2Iso = uncurry (&&&) :<-> unfork2
+fork2Iso = fork2 :<-> unfork2
 
 joinIso :: (CocartesianR k r co, Obj2 k a b) => r (a `k` b) <-> co r a `k` b
 joinIso = join :<-> unjoin

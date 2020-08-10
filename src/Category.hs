@@ -96,7 +96,11 @@ infixr 3 &&&
       => (a `k` c) -> (a `k` d) -> (a `k` (c `p` d))
 f &&& g = (f *** g) . dup
 
--- Inverse of uncurry (&&&)
+fork2 :: (Cartesian k p, Obj3 k a c d)
+      => (a `k` c) :* (a `k` d) -> (a `k` (c `p` d))
+fork2 = uncurry (&&&)
+
+-- Inverse of fork2
 unfork2 :: (Cartesian k p, Obj3 k a c d)
         => (a `k` (c `p` d)) -> ((a `k` c) :* (a `k` d))
 unfork2 f = (exl . f , exr . f)
@@ -137,7 +141,11 @@ infixr 2 |||
       => (a `k` c) -> (b `k` c) -> ((a `co` b) `k` c)
 f ||| g = jam . (f +++ g)
 
--- Inverse of uncurry (|||)
+join2 :: (Cocartesian k co, Obj3 k a b c)
+      => (a `k` c) :* (b `k` c) -> ((a `co` b) `k` c)
+join2 = uncurry (|||)
+
+-- Inverse of join2
 unjoin2 :: (Cocartesian k co, Obj3 k a b c)
         => ((a `co` b) `k` c) -> ((a `k` c) :* (b `k` c))
 unjoin2 f = (f . inl , f . inr)
