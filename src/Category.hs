@@ -86,6 +86,12 @@ class (Category k, ObjBin k p) => Monoidal k p | k -> p where
 -- we cannot currently handle n-ary coproducts that are not n-ary cartesian
 -- *products*.
 
+first :: (Monoidal k p, Obj3 k a b c) => (a `k` c) -> ((a `p` b) `k` (c `p` b))
+first f = f *** id
+
+second :: (Monoidal k p, Obj3 k a b d) => (b `k` d) -> ((a `p` b) `k` (a `p` d))
+second g = id *** g
+
 class Monoidal k p => Cartesian k p where
   exl :: Obj2 k a b => (a `p` b) `k` a
   exr :: Obj2 k a b => (a `p` b) `k` b
@@ -127,6 +133,12 @@ pattern f :& g <- (unfork2 -> (f,g)) where (:&) = (&&&)
 class Associative k p where
   lassoc :: Obj3 k a b c => (a `p` (b `p` c)) `k` ((a `p` b) `p` c)
   rassoc :: Obj3 k a b c => ((a `p` b) `p` c) `k` (a `p` (b `p` c))
+  default lassoc :: (Cartesian k p, Obj3 k a b c)
+                 => (a `p` (b `p` c)) `k` ((a `p` b) `p` c)
+  lassoc = second exl &&& (exr . exr)
+  default rassoc :: (Cartesian k p, Obj3 k a b c)
+                 => ((a `p` b) `p` c) `k` (a `p` (b `p` c))
+  rassoc = (exl . exl) &&& first  exr
 
 class Symmetric k p where
   swap :: Obj2 k a b => (a `p` b) `k` (b `p` a)
@@ -255,8 +267,8 @@ instance Monoidal (->) (:*) where
   (***) = (A.***)
 
 instance Associative (->) (:*) where
-  lassoc (a,(b,c)) = ((a,b),c)
-  rassoc ((a,b),c) = (a,(b,c))
+  -- lassoc (a,(b,c)) = ((a,b),c)
+  -- rassoc ((a,b),c) = (a,(b,c))
 
 instance Symmetric (->) (:*) where
   swap = T.swap
