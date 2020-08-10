@@ -43,17 +43,17 @@ instance Category k => Category (Iso k) where
   id = id :<-> id
   (g :<-> g') . (f :<-> f') = (g . f) :<-> (f' . g')
 
-instance Associative k p => Associative (Iso k) p where
+instance Associative p k => Associative p (Iso k) where
   lassoc = lassoc :<-> rassoc
   rassoc = rassoc :<-> lassoc
 
-instance Symmetric k p => Symmetric (Iso k) p where
+instance Symmetric p k => Symmetric p (Iso k) where
   swap = swap :<-> swap
 
 -- We cannot use the default definitions for Associative and Symmetric, because
 -- Iso k is not cartesian.
 
-instance Monoidal k p => Monoidal (Iso k) p where
+instance Monoidal p k => Monoidal p (Iso k) where
   (f :<-> f') *** (g :<-> g') = (f *** g) :<-> (f' *** g')
 
 -- Illegal instance declaration for ‘Monoidal (Iso k) p’
@@ -65,7 +65,7 @@ instance Monoidal k p => Monoidal (Iso k) p where
 --
 -- TODO: revisit after monkeying with the Monoidal class.
 
-instance Comonoidal k co => Comonoidal (Iso k) co where
+instance Comonoidal co k => Comonoidal co (Iso k) where
   (f :<-> f') +++ (g :<-> g') = (f +++ g) :<-> (f' +++ g')
 
 #if 0
@@ -84,18 +84,18 @@ instance UnitCat k => UnitCat (Iso k) where
 via :: (Category k, Obj2 k a b) => Iso k b b -> Iso k a b -> Iso k a a
 (g :<-> g') `via` (ab :<-> ba) = ba . g . ab :<-> ba . g' . ab
 
-join2Iso :: (Cocartesian k co, Obj3 k a c d) 
+join2Iso :: (Cocartesian co k, Obj3 k a c d)
          => (c `k` a) :* (d `k` a) <-> ((c `co` d) `k` a)
 join2Iso = join2 :<-> unjoin2
 
-fork2Iso :: (Cartesian k p, Obj3 k a c d)
+fork2Iso :: (Cartesian p k, Obj3 k a c d)
          => (a `k` c) :* (a `k` d) <-> (a `k` (c `p` d))
 fork2Iso = fork2 :<-> unfork2
 
-joinIso :: (CocartesianR k r co, Obj2 k a b) => r (a `k` b) <-> co r a `k` b
+joinIso :: (CocartesianR r co k, Obj2 k a b) => r (a `k` b) <-> co r a `k` b
 joinIso = join :<-> unjoin
 
-forkIso :: (CartesianR k r p, Obj2 k a b) => r (a `k` b) <-> (a `k` p r b)
+forkIso :: (CartesianR r p k, Obj2 k a b) => r (a `k` b) <-> (a `k` p r b)
 forkIso = fork :<-> unfork
 
 curryIso :: ((a :* b) -> c) <-> (a -> (b -> c))
@@ -127,7 +127,7 @@ fmapIso fg h = isoFwd fg . fmap h . isoRev fg
 
 -- Don't pattern match fg, since we need two type instantiations.
 -- For instance, the following doesn't type-check:
--- 
+--
 --   fmapIso (fg :<-> gf) h = fg . fmap h . gf
 
 -- Is this fmapIso really the most useful and natural variant?

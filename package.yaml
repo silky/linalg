@@ -17,6 +17,7 @@ default-extensions:
   # - DeriveFoldable
   - DeriveFunctor
   - DeriveGeneric
+  - DerivingVia
   - FlexibleContexts
   - FlexibleInstances
   - FunctionalDependencies

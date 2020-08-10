@@ -11,7 +11,6 @@ import Data.Constraint
 import Category
 
 instance Category (:-) where
-  type Obj' (:-) = Unconstrained
   id  = refl
   (.) = trans
 
@@ -19,17 +18,17 @@ instance Category (:-) where
 class    (p,q) => p && q
 instance (p,q) => p && q
 
-instance Monoidal (:-) (&&) where
+instance Monoidal (&&) (:-) where
   p *** q = Sub (Dict \\ p \\ q)
 
-instance Associative (:-) (&&) where
+instance Associative (&&) (:-) where
   lassoc = Sub Dict
   rassoc = Sub Dict
 
-instance Symmetric (:-) (&&) where
+instance Symmetric (&&) (:-) where
   swap = Sub Dict
 
-instance Cartesian (:-) (&&) where
+instance Cartesian (&&) (:-) where
   exl = Sub Dict
   exr = Sub Dict
   dup = Sub Dict
