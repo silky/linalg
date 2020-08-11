@@ -206,9 +206,9 @@ unscale = unPar1 . toScalar'
 -------------------------------------------------------------------------------
 
 inner :: (Representable a, Foldable a, Semiring s) => a s -> a s -> L s Par1 Par1
-inner b a = toScalar b . fromScalar a
+b `inner` a = toScalar b . fromScalar a
 
 outer :: (Representable a, Foldable a, Representable b, Semiring s)
       => b s -> a s -> L s a b
-outer b a = fromScalar b . toScalar a
+b `outer` a = fromScalar b . toScalar a
 
