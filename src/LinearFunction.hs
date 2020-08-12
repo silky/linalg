@@ -97,6 +97,76 @@ class LinearMap l where
 -- Trivial instance
 instance LinearMap L where mu = id
 
+-- Linear map application (for all representations)
+infixl 9 @@
+(@@) :: (LinearMap l, C2 Representable a b, Obj2 (l s) a b)
+     => l s a b -> a s -> b s
+m @@ a = unL (isoFwd mu m) a
+
+
+-------------------------------------------------------------------------------
+-- | Linear map as vector
+-------------------------------------------------------------------------------
+
+newtype LV l (a :: * -> *) (b :: * -> *) s = LV { unLV :: l s a b }
+
+#if 0
+-- For now instances have l = L, but we will generalize.
+
+instance (Representable a, Eq (Rep a), Foldable a, Representable b)
+      => Functor (LV L a b) where
+  fmap = fmapRep
+
+instance (Representable a, Eq (Rep a), Foldable a, Representable b)
+      => Distributive (LV L a b) where
+  distribute = distributeRep
+
+-- TODO: consider more efficient fmap and distribute definitions
+
+instance (Representable a, Eq (Rep a), Foldable a, Representable b)
+      => Representable (LV L a b) where
+  type Rep (LV L a b) = Rep b :* Rep a
+  tabulate = LV . unMat . tabulate
+  index = index . toMat . unLV
+
+-- Could not deduce (Semiring a1) arising from a use of ‘unMat’
+-- from the context: (Representable a, Eq (Rep a), Foldable a,
+--                    Representable b)
+--   bound by the instance declaration
+
+-- I don't think this error if we stick with Data.Functor.Rep, because it won't
+-- let us constrain the codomain to be (for instance) a semiring (or later a
+-- category morphism). We can add our own constrained Representable. While we're
+-- at it, replace tabulate and index with a single isomorphism-valued method.
+-- Bonus: we can define this Representable LV instance as a simple isomorphism
+-- composition.
+#endif
+
+-- Row-major matrices, a common data representation for linear maps
+type Mat a b = b :.: a
+
+toMat :: (Representable a, Eq (Rep a), Distributive b, Semiring s)
+      => L s a b -> Mat a b s
+toMat (L f) = Comp1 (distribute (f <$> basis))
+
+#if 0
+                   f             :: a s -> b s
+                         basis   :: a (a s)
+                   f <$> basis   :: a (b s)
+       distribute (f <$> basis)  :: b (a s)
+Comp1 (distribute (f <$> basis)) :: (b :.: a) s
+#endif
+
+unMat :: (Representable a, Eq (Rep a), Foldable a, Functor b, Semiring s)
+      => Mat a b s -> L s a b
+unMat (Comp1 ab) = L (\ a -> dot a <$> ab)
+
+matIso :: (Representable a, Eq (Rep a), Foldable a, Distributive b, Semiring s)
+       => L s a b <-> Mat a b s
+matIso = toMat :<-> unMat
+
+-- TODO: generalize toMat from L.
+
 -------------------------------------------------------------------------------
 -- | Vector/map isomorphisms
 -------------------------------------------------------------------------------
