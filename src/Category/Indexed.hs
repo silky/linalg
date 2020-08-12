@@ -4,7 +4,7 @@
 
 -- | Logarithms (Representable indices) as objects
 
-module Category.Index where
+module Category.Indexed where
 
 import CatPrelude
 

@@ -64,6 +64,6 @@ library:
     - CatPrelude
     - Category.Opposite
     - Category.Isomorphism
-    - Category.Index
+    - Category.Indexed
     - Category.Constraint
     - Category.Semiring
