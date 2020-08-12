@@ -12,15 +12,12 @@ module Category where
 import qualified Prelude as P
 import Prelude hiding (id,(.))
 import GHC.Types (Constraint)
-import GHC.Generics (Generic,Generic1)
 import qualified Control.Arrow as A
-import Data.Distributive
+import Data.Monoid (Ap(..))
 import Data.Functor.Rep
 
 import Misc
-
-class    Unconstrained a
-instance Unconstrained a
+import Orphans ()
 
 -- https://github.com/conal/linalg/pull/28#issuecomment-670313952
 class    Obj' k a => Obj k a
@@ -315,20 +312,6 @@ deriving via (ViaCartesian   (:*) (->)) instance Associative (:*) (->)
 deriving via (ViaCartesian   (:*) (->)) instance Symmetric   (:*) (->)
 deriving via (ViaCocartesian (:+) (->)) instance Associative (:+) (->)
 deriving via (ViaCocartesian (:+) (->)) instance Symmetric   (:+) (->)
-
-newtype Ap f a = Ap { unAp :: f a }
-  deriving (Functor, Generic, Generic1)
-
--- TODO: switch to Data.Monoid.Ap if/when it gets Distributive and Representable
--- instances.
-
-instance Distributive f => Distributive (Ap f) where
-  distribute = Ap . distribute . fmap unAp
-
-instance Representable f => Representable (Ap f) where
-  type Rep (Ap f) = Rep f
-  tabulate = Ap . tabulate
-  index = index . unAp
 
 instance Representable r => MonoidalR r Ap (->) where
   cross rab (Ap ra) = Ap (liftR2 ($) rab ra)
