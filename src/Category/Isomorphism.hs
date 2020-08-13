@@ -16,7 +16,6 @@ import GHC.Exts (Coercible,coerce)
 import Data.Void
 import Control.Newtype.Generics
 
-import Data.Proxy
 import GHC.TypeLits
 import Data.Finite
 import qualified Data.Finite.Internal as FI
@@ -141,28 +140,6 @@ fmapIso (f :<-> g) = (fmap f :<-> fmap g)
 -- TODO: move most functionality to another module, and just assemble
 -- isomorphisms here.
 
-#if 1
-natValAt :: forall n. KnownNat n => Integer
-natValAt = nat @n
-
--- To defer the ambiguity check to use sites, enable AllowAmbiguousTypes
-
--- Shorter name
-nat :: forall n. KnownNat n => Integer
-nat = natVal (Proxy @n)
-{-# INLINE nat #-}
-
-int :: forall n. KnownNat n => Int
-int = fromIntegral (nat @n)
-{-# INLINE int #-}
-
-unsafeFinite :: KnownNat n => Int -> Finite n
-unsafeFinite n = FI.Finite (fromIntegral n)
-
-unFinite :: Finite n -> Int
-unFinite (FI.Finite n) = fromInteger n
-#endif
-
 combineZero  :: Void -> Finite 0
 combineZero = absurd
 {-# INLINE combineZero #-}
@@ -172,7 +149,7 @@ separateZero = error "no Finite 0"  -- Hm.
 {-# INLINE separateZero #-}
 
 combineOne   :: () -> Finite 1
-combineOne () = unsafeFinite 0
+combineOne () = FI.Finite 0
 {-# INLINE combineOne #-}
 
 separateOne  :: Finite 1 -> ()
@@ -190,6 +167,3 @@ finPar1 = combineOne :<-> separateOne
 finSum  :: C2 KnownNat m n => Finite m :+ Finite n <-> Finite (m + n)
 finSum  = combineSum :<-> separateSum
 {-# INLINE finSum #-}
-
-#if 0
-#endif
