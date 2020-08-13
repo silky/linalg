@@ -59,6 +59,12 @@ class Additive a => Semiring a where
   one :: a
   (*) :: a -> a -> a
 
+instance Additive Int where { zero = 0 ; (+) = (P.+) }
+instance Semiring Int where { one  = 1 ; (*) = (P.*) }
+
+instance Additive Integer where { zero = 0 ; (+) = (P.+) }
+instance Semiring Integer where { one  = 1 ; (*) = (P.*) }
+
 instance Additive Double where { zero = 0 ; (+) = (P.+) }
 instance Semiring Double where { one  = 1 ; (*) = (P.*) }
 
