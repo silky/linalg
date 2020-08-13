@@ -10,7 +10,7 @@
 module Category where
 
 import qualified Prelude as P
-import Prelude hiding (id,(.))
+import Prelude hiding (id,(.),curry,uncurry)
 import GHC.Types (Constraint)
 import qualified Control.Arrow as A
 import Data.Monoid (Ap(..))
@@ -51,7 +51,7 @@ type Obj6 k a b c d e f = C6 (Obj k) a b c d e f
 -- TODO: Maybe eliminate all type definitions based on Obj2 .. Obj6 in favor of
 -- their definitions, which are not much longer anyway.
 
--- Products of objects are objects.
+-- Products, coproducts, exponentials of objects are objects.
 -- Seee https://github.com/conal/linalg/pull/28#issuecomment-670313952
 type ObjBin p k = ((forall a b. Obj2 k a b => Obj k (a `p` b)) :: Constraint)
 
@@ -193,6 +193,25 @@ type Bicartesian p co k = (Cartesian p k, Cocartesian co k)
 class Bicartesian p p k => Biproduct p k
 
 
+class (Category k, ObjBin e k) => Closed e k | k -> e where
+  (^^^) :: Obj4 k a b c d => (a `k` b) -> (d `k` c) -> ((c `e` a) `k` (d `e` b))
+
+dom :: (Closed e k, Obj3 k c a d) => (d `k` c) -> ((c `e` a) `k` (d `e` a))
+dom f = id ^^^ f
+
+cod :: (Closed e k, Obj3 k c a b) => (a `k` b) -> ((c `e` a) `k` (c `e` b))
+cod g = g ^^^ id
+
+-- The argument order in (^^^) is opposite that of concat.
+
+class (Monoidal p k, Closed e k) => MonoidalClosed p e k where
+  curry   :: Obj3 k a b c => ((a `p` b) `k` c)   -> (a `k` (b `e` c))
+  uncurry :: Obj3 k a b c => (a `k` (b `e` c)) -> ((a `p` b) `k` c)
+  apply   :: Obj2 k a b => ((a `e` b) `p` a) `k` b
+  apply = uncurry id
+  uncurry g = apply . first g
+  {-# MINIMAL curry, (uncurry | apply) #-}
+
 -- | The 'ViaCartesian' type is designed to be used with `DerivingVia` to derive
 -- `Associative` and `Symmetric` instances using the `Cartesian` operations.
 newtype ViaCartesian p k a b = ViaCartesian (k a b)
@@ -307,6 +326,12 @@ instance Cocartesian (:+) (->) where
   -- jam (Left  a) = a
   -- jam (Right a) = a
   -- Also, could use `either` or `bimap` instead of `A.|||`
+
+instance Closed (->) (->) where (h ^^^ f) g = h . g . f
+
+instance MonoidalClosed (:*) (->) (->) where
+  curry   = P.curry
+  uncurry = P.uncurry
 
 deriving via (ViaCartesian   (:*) (->)) instance Associative (:*) (->)
 deriving via (ViaCartesian   (:*) (->)) instance Symmetric   (:*) (->)

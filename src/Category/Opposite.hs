@@ -38,6 +38,11 @@ instance Cartesian p k => Cocartesian p (Op k) where
   inr = Op exr
   jam = Op dup
 
+instance Biproduct p k => Biproduct p (Op k)
+
+instance Closed e k => Closed e (Op k) where
+  Op f ^^^ Op g = Op (f ^^^ g)
+
 instance ComonoidalR r p k => MonoidalR r p (Op k) where
   cross (fmap unOp -> fs) = Op (plus fs)
 
