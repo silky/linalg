@@ -137,18 +137,21 @@ fmapIso (f :<-> g) = (fmap f :<-> fmap g)
 -- | Finite
 -------------------------------------------------------------------------------
 
--- TODO: move most functionality to another module, and just assemble
--- isomorphisms here.
+-- Some operations missing from Data.Finite.
+-- TODO: pull request for finite-typelits
 
 combineZero  :: Void -> Finite 0
 combineZero = absurd
 {-# INLINE combineZero #-}
 
+absurdFinite :: Finite 0 -> a
+absurdFinite = error "no Finite 0"  -- Hm.
+
 separateZero :: Finite 0 -> Void
-separateZero = error "no Finite 0"  -- Hm.
+separateZero = absurdFinite
 {-# INLINE separateZero #-}
 
-combineOne   :: () -> Finite 1
+combineOne :: () -> Finite 1
 combineOne () = FI.Finite 0
 {-# INLINE combineOne #-}
 
@@ -156,7 +159,7 @@ separateOne  :: Finite 1 -> ()
 separateOne = const ()
 {-# INLINE separateOne #-}
 
--- TODO: reverse the sense of finU1, finPar1, finSum and finProd
+-- TODO: consider reversing the sense of finU1, finPar1, finSum and finProd
 
 finU1 :: Void <-> Finite 0
 finU1 = combineZero :<-> separateZero
@@ -167,3 +170,21 @@ finPar1 = combineOne :<-> separateOne
 finSum  :: C2 KnownNat m n => Finite m :+ Finite n <-> Finite (m + n)
 finSum  = combineSum :<-> separateSum
 {-# INLINE finSum #-}
+
+finProd  :: C2 KnownNat m n => Finite m :* Finite n <-> Finite (m * n)
+finProd  = combineProduct :<-> separateProduct
+{-# INLINE finProd #-}
+
+#if 0
+vecU1 :: Vector 0 <--> U1
+vecU1 = reindex finU1
+
+vecPar1 :: Vector 1 <--> Par1
+vecPar1 = reindex finPar1
+
+reindex :: (Representable f, Representable g) => (Rep g <-> Rep f) -> (f <--> g)
+reindex h = inv repIso . dom h . repIso
+{-# INLINE reindex #-}
+
+-- dom needs Closed. Adding in a new "closed" branch.
+#endif

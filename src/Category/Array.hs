@@ -36,7 +36,6 @@ instance Category k => Category (Arr k) where
   Arr g . Arr f = Arr (g . f)
 
 
-
 #if 0
 
 instance Monoidal (:*:) k => Monoidal (:*:) (Arr k) where
@@ -47,6 +46,7 @@ g :: VecC b `k` VecC d
 
 f *** g :: (VecC a :*: VecC b) `k` (VecC c :*: VecC d)
 
+-- Now use combineProduct and separateProduct. Oops: only available for (->).
 
 -- f *** g :: VecC (a :*: b) `k` VecC (c :*: d)
 
