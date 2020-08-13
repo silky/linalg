@@ -1,4 +1,9 @@
-{-# LANGUAGE UndecidableInstances #-} -- see below
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes #-} -- see below
+
+{-# LANGUAGE NoStarIsType #-}  -- for (*) on Nat
+
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
 -- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
@@ -8,7 +13,13 @@ module Category.Isomorphism where
 
 import qualified GHC.Generics as G
 import GHC.Exts (Coercible,coerce)
+import Data.Void
 import Control.Newtype.Generics
+
+import Data.Proxy
+import GHC.TypeLits
+import Data.Finite
+import qualified Data.Finite.Internal as FI
 
 import CatPrelude
 
@@ -121,3 +132,64 @@ type f <--> g = forall a. f a <-> g a
 
 fmapIso :: Functor f => a <-> b -> f a <-> f b
 fmapIso (f :<-> g) = (fmap f :<-> fmap g)
+
+
+-------------------------------------------------------------------------------
+-- | Finite
+-------------------------------------------------------------------------------
+
+-- TODO: move most functionality to another module, and just assemble
+-- isomorphisms here.
+
+#if 0
+natValAt :: forall n. KnownNat n => Integer
+natValAt = nat @n
+
+-- To defer the ambiguity check to use sites, enable AllowAmbiguousTypes
+
+-- Shorter name
+nat :: forall n. KnownNat n => Integer
+nat = natVal (Proxy @n)
+{-# INLINE nat #-}
+
+int :: forall n. KnownNat n => Int
+int = fromIntegral (nat @n)
+{-# INLINE int #-}
+
+unsafeFinite :: KnownNat n => Int -> Finite n
+unsafeFinite n = FI.Finite (fromIntegral n)
+
+unFinite :: Finite n -> Int
+unFinite (FI.Finite n) = fromInteger n
+#endif
+
+combineZero  :: Void -> Finite 0
+combineZero = absurd
+{-# INLINE combineZero #-}
+
+separateZero :: Finite 0 -> Void
+separateZero = error "no Finite 0"  -- Hm.
+{-# INLINE separateZero #-}
+
+combineOne   :: () -> Finite 1
+combineOne () = unsafeFinite 0
+{-# INLINE combineOne #-}
+
+separateOne  :: Finite 1 -> ()
+separateOne = const ()
+{-# INLINE separateOne #-}
+
+-- TODO: reverse the sense of finU1, finPar1, finSum and finProd
+
+finU1 :: Void <-> Finite 0
+finU1 = combineZero :<-> separateZero
+
+finPar1 :: () <-> Finite 1
+finPar1 = combineOne :<-> separateOne
+
+finSum  :: C2 KnownNat m n => Finite m :+ Finite n <-> Finite (m + n)
+finSum  = combineSum :<-> separateSum
+{-# INLINE finSum #-}
+
+#if 0
+#endif

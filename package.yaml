@@ -13,6 +13,7 @@ description:         Please see the README on GitHub at <https://github.com/cona
 default-extensions:
   - CPP
   - ConstraintKinds
+  - DataKinds
   - DefaultSignatures
   # - DeriveFoldable
   - DeriveFunctor
@@ -36,7 +37,7 @@ default-extensions:
   - TypeFamilies
   - TypeOperators
   - ViewPatterns
-  # - ScopedTypeVariables
+  - ScopedTypeVariables
   - KindSignatures
   - TypeSynonymInstances
   - PolyKinds
@@ -52,6 +53,10 @@ library:
     - distributive
     - adjunctions
     - newtype-generics
+    - finite-typelits
+    - vector-sized >= 1.4.1.0
+    - ghc-typelits-knownnat
+    # - ghc-typelits-natnormalise
   other-modules: []
   source-dirs: src
   exposed-modules:
@@ -67,3 +72,4 @@ library:
     - Category.Indexed
     - Category.Constraint
     - Category.Semiring
+    - Category.Array
