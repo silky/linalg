@@ -141,7 +141,7 @@ fmapIso (f :<-> g) = (fmap f :<-> fmap g)
 -- TODO: move most functionality to another module, and just assemble
 -- isomorphisms here.
 
-#if 0
+#if 1
 natValAt :: forall n. KnownNat n => Integer
 natValAt = nat @n
 
