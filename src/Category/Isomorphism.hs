@@ -19,6 +19,7 @@ import Control.Newtype.Generics
 import GHC.TypeLits
 import Data.Finite
 import qualified Data.Finite.Internal as FI
+import Data.Vector.Sized (Vector)
 
 import CatPrelude
 
@@ -91,7 +92,7 @@ instance Closed e k => Closed e (Iso k) where
 -- TODO: n-ary products and coproducts
 
 -------------------------------------------------------------------------------
--- | Utilities
+-- | Categories
 -------------------------------------------------------------------------------
 
 -- | Apply one isomorphism via another
@@ -112,10 +113,13 @@ joinIso = join :<-> unjoin
 forkIso :: (CartesianR r p k, Obj2 k a b) => r (a `k` b) <-> (a `k` p r b)
 forkIso = fork :<-> unfork
 
-curryIso :: ((a :* b) -> c) <-> (a -> (b -> c))
+curryIso :: (MonoidalClosed p e k, Obj3 k a b c)
+         => ((a `p` b) `k` c) <-> (a `k` (b `e` c))
 curryIso = curry :<-> uncurry
 
--- TODO: generalize curry from (->) to cartesian closed
+-------------------------------------------------------------------------------
+-- | Miscellany
+-------------------------------------------------------------------------------
 
 newIso :: Newtype a => a <-> O a
 newIso = unpack :<-> pack
@@ -139,6 +143,8 @@ type f <--> g = forall a. f a <-> g a
 fmapIso :: Functor f => a <-> b -> f a <-> f b
 fmapIso (f :<-> g) = (fmap f :<-> fmap g)
 
+reindex :: (Representable f, Representable g) => (Rep g <-> Rep f) -> (f <--> g)
+reindex h = inv repIso . dom h . repIso
 
 -------------------------------------------------------------------------------
 -- | Finite
@@ -166,32 +172,81 @@ separateOne  :: Finite 1 -> ()
 separateOne = const ()
 {-# INLINE separateOne #-}
 
--- TODO: consider reversing the sense of finU1, finPar1, finSum and finProd
+-- TODO: consider reversing the sense of finVoid, finUnit, finSum and finProd
 
-finU1 :: Void <-> Finite 0
-finU1 = combineZero :<-> separateZero
+finVoid :: Void <-> Finite 0
+finVoid = combineZero :<-> separateZero
 
-finPar1 :: () <-> Finite 1
-finPar1 = combineOne :<-> separateOne
+finUnit :: () <-> Finite 1
+finUnit = combineOne :<-> separateOne
 
-finSum  :: C2 KnownNat m n => Finite m :+ Finite n <-> Finite (m + n)
+finSum  :: KnownNat m => Finite m :+ Finite n <-> Finite (m + n)
 finSum  = combineSum :<-> separateSum
-{-# INLINE finSum #-}
 
-finProd  :: C2 KnownNat m n => Finite m :* Finite n <-> Finite (m * n)
+finProd  :: KnownNat m => Finite m :* Finite n <-> Finite (m * n)
 finProd  = combineProduct :<-> separateProduct
-{-# INLINE finProd #-}
 
-#if 0
-vecU1 :: Vector 0 <--> U1
-vecU1 = reindex finU1
+{----------------------------------------------------------------------
+   Finite cardinalities
+----------------------------------------------------------------------}
 
-vecPar1 :: Vector 1 <--> Par1
-vecPar1 = reindex finPar1
+type KnownCard a = KnownNat (Card a)
 
-reindex :: (Representable f, Representable g) => (Rep g <-> Rep f) -> (f <--> g)
-reindex h = inv repIso . dom h . repIso
-{-# INLINE reindex #-}
+class KnownCard a => HasFin a where
+  type Card a :: Nat
+  fin :: a <-> Finite (Card a)
 
--- dom needs Closed. Adding in a new "closed" branch.
-#endif
+vecTrie :: (Representable f, HasFin (Rep f)) => Vector (Card (Rep f)) <--> f
+vecTrie = reindex fin
+
+instance HasFin Void where
+  type Card Void = 0
+  fin = finVoid
+  {-# INLINE fin #-}
+
+instance HasFin () where
+  type Card () = 1
+  fin = finUnit
+  {-# INLINE fin #-}
+
+instance HasFin Bool where
+  type Card Bool = 2
+  fin = (FI.Finite . cond 1 0) :<-> (\ (FI.getFinite -> n) -> n > 0)
+  {-# INLINE fin #-}
+
+instance KnownNat n => HasFin (Finite n) where
+  type Card (Finite n) = n
+  fin = id
+  {-# INLINE fin #-}
+
+instance (HasFin a, HasFin b) => HasFin (a :+ b) where
+  type Card (a :+ b) = Card a + Card b
+  fin = finSum . (fin +++ fin)
+  {-# INLINE fin #-}
+
+instance (HasFin a, HasFin b) => HasFin (a :* b) where
+  type Card (a :* b) = Card a * Card b
+  fin = finProd . (fin *** fin)
+  {-# INLINE fin #-}
+
+-- instance (HasFin a, HasFin b) => HasFin (a :^ b) where
+--   type Card (a :^ b) = Card a ^ Card b
+--   fin = finExp . (exFin :<-> inFin)
+--   {-# INLINE fin #-}
+
+-------------------------------------------------------------------------------
+-- | Vector
+-------------------------------------------------------------------------------
+
+vec0 :: Vector 0 <--> U1
+vec0 = reindex finVoid
+
+vec1 :: Vector 1 <--> Par1
+vec1 = reindex finUnit
+
+vecSum  :: C2 KnownNat m n => Vector (m + n) <--> Vector m :*: Vector n
+vecSum  = reindex finSum
+
+vecProd :: C2 KnownNat m n => Vector (m * n) <--> Vector m :.: Vector n
+vecProd = reindex finProd
+
