@@ -92,7 +92,7 @@ instance Closed e k => Closed e (Iso k) where
 -- TODO: n-ary products and coproducts
 
 -------------------------------------------------------------------------------
--- | Categories
+-- | Categorical isomorphisms
 -------------------------------------------------------------------------------
 
 -- | Apply one isomorphism via another
@@ -187,7 +187,7 @@ finProd  :: KnownNat m => Finite m :* Finite n <-> Finite (m * n)
 finProd  = combineProduct :<-> separateProduct
 
 {----------------------------------------------------------------------
-   Finite cardinalities
+   Types with finite cardinalities
 ----------------------------------------------------------------------}
 
 type KnownCard a = KnownNat (Card a)
@@ -195,6 +195,8 @@ type KnownCard a = KnownNat (Card a)
 class KnownCard a => HasFin a where
   type Card a :: Nat
   fin :: a <-> Finite (Card a)
+
+type VecCard a = Vector (Card (Rep a))
 
 vecTrie :: (Representable f, HasFin (Rep f)) => Vector (Card (Rep f)) <--> f
 vecTrie = reindex fin
@@ -233,20 +235,3 @@ instance (HasFin a, HasFin b) => HasFin (a :* b) where
 --   type Card (a :^ b) = Card a ^ Card b
 --   fin = finExp . (exFin :<-> inFin)
 --   {-# INLINE fin #-}
-
--------------------------------------------------------------------------------
--- | Vector
--------------------------------------------------------------------------------
-
-vec0 :: Vector 0 <--> U1
-vec0 = reindex finVoid
-
-vec1 :: Vector 1 <--> Par1
-vec1 = reindex finUnit
-
-vecSum  :: C2 KnownNat m n => Vector (m + n) <--> Vector m :*: Vector n
-vecSum  = reindex finSum
-
-vecProd :: C2 KnownNat m n => Vector (m * n) <--> Vector m :.: Vector n
-vecProd = reindex finProd
-

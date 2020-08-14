@@ -192,3 +192,6 @@ infixr 1 ~>
 
 class    Unconstrained a
 instance Unconstrained a
+
+cond :: a -> a -> Bool -> a
+cond t e c = if c then t else e

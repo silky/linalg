@@ -10,7 +10,7 @@ module Category.Array where
 import GHC.TypeLits
 -- import GHC.TypeLits.KnownNat
 import Data.Finite
-import Data.Vector.Sized
+import Data.Vector.Sized (Vector)
 
 import CatPrelude
 import Category.Isomorphism
@@ -20,38 +20,25 @@ type ObjVec' k a = Obj k (Vector (Card (Rep a)))
 class    ObjVec' k a => ObjVec k a  
 instance ObjVec' k a => ObjVec k a  
 
-type KnownCard i = KnownNat (Card i)
-
-class KnownCard a => HasFin a where
-  type Card a :: Nat
-  finI :: a <-> Finite (Card a)
-
-type VecC a = Vector (Card (Rep a))
-
-newtype Arr k a b = Arr (VecC a `k` VecC b)
+newtype Arr k a b = Arr (VecCard a `k` VecCard b)
 
 instance Category k => Category (Arr k) where
   type Obj' (Arr k) = ObjVec k
   id = Arr id
   Arr g . Arr f = Arr (g . f)
 
-
 #if 0
 
 instance Monoidal (:*:) k => Monoidal (:*:) (Arr k) where
   Arr f *** Arr g = Arr (f *** g)
 
-f :: VecC a `k` VecC c
-g :: VecC b `k` VecC d
+f :: VecCard a `k` VecCard c
+g :: VecCard b `k` VecCard d
 
-f *** g :: (VecC a :*: VecC b) `k` (VecC c :*: VecC d)
+f *** g :: (VecCard a :*: VecCard b) `k` (VecCard c :*: VecCard d)
 
--- Now use combineProduct and separateProduct. Oops: only available for (->).
+need :: VecCard (a :*: b) `k` VecCard (c :*: d)
 
--- f *** g :: VecC (a :*: b) `k` VecC (c :*: d)
-
-VecC (a :*: b)
-Vector (Card (Rep (a :*: b)))
-Vector (Card (Rep a + Rep b))
+-- Bridge the gap with vecTrie. Oops: only available for (->) but not k
 
 #endif
