@@ -11,7 +11,4 @@ instance Semiring s => Category (SemiringCat s) where
   S t . S s = S (t * s)
 
 deriving instance Additive s => Additive (SemiringCat s a b)
-
--- Do we want a Semiring instance?
---
--- deriving instance Semiring s => Semiring (SemiringCat s a b)
+deriving instance Semiring s => Semiring (SemiringCat s a b)

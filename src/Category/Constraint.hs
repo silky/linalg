@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-} -- see below
 
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -17,6 +18,10 @@ instance Category (:-) where
 -- Constraint (,) is not first class with GHC, so define a synonymous class.
 class    (p,q) => p && q
 instance (p,q) => p && q
+
+-- Potential superclass cycle for ‘&&’
+--   one of whose superclass constraints is headed by a type variable: ‘p’
+-- Use UndecidableSuperClasses to accept this
 
 instance Monoidal (&&) (:-) where
   p *** q = Sub (Dict \\ p \\ q)
@@ -41,10 +46,16 @@ instance Cartesian (&&) (:-) where
 -- because GHC instance search doesn't backtrac). On the other hand, entaliment
 -- can probably be closed, now that GHC supports implication constraints.
 
+infixr 1 ==>
+class    (p => q) => (p ==> q)
+instance (p => q) => (p ==> q)
 
--- Potential superclass cycle for ‘&&’
---   one of whose superclass constraints is headed by a type variable: ‘p’
--- Use UndecidableSuperClasses to accept this
--- In the class declaration for ‘&&’
---
--- class    (p,q) => p && q
+-- Variable ‘p’ occurs more often
+--   in the constraint ‘p’ than in the instance head ‘q’
+-- (Use UndecidableInstances to permit this)
+
+-- Is there a Closed instance?
+
+-- instance Closed (==>) (:-) where
+--   (^^^) :: (a :- b) -> (d :- c) -> ((c ==> a) :- (d ==> b))
+--   f ^^^ g = ???
