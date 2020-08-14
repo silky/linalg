@@ -10,7 +10,7 @@ module CatPrelude (
   , module GHC.Types
   ) where
 
-import Prelude hiding (id, sum, unzip, (*), (+), (.))
+import Prelude hiding ((*), (+), id, (.), sum, unzip, curry, uncurry)
 
 import Misc
 import Category

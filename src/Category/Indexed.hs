@@ -78,3 +78,5 @@ instance MonoidalR r (:.:) k => MonoidalR r RepX (Indexed k) where
 -- newtype, but then it wouldn't be the Rep/index of functor composition.
 
 #endif
+
+-- TODO: Closed instance?

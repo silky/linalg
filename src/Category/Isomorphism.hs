@@ -83,6 +83,13 @@ instance UnitCat k => UnitCat (Iso k) where
   rcounit = rcounit :<-> runit
 #endif
 
+instance Closed e k => Closed e (Iso k) where
+  (p :<-> p') ^^^ (q :<-> q') = (p ^^^ q) :<-> (p' ^^^ q')
+
+-- TODO: is there a MonoidalClosed instance? I don't think so.
+
+-- TODO: n-ary products and coproducts
+
 -------------------------------------------------------------------------------
 -- | Utilities
 -------------------------------------------------------------------------------
