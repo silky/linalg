@@ -55,7 +55,7 @@ type Obj6 k a b c d e f = C6 (Obj k) a b c d e f
 -- Seee https://github.com/conal/linalg/pull/28#issuecomment-670313952
 type ObjBin p k = ((forall a b. Obj2 k a b => Obj k (a `p` b)) :: Constraint)
 
-class (Category k, ObjBin p k) => Monoidal p k | k -> p where
+class (Category k, ObjBin p k) => Monoidal p k {- | k -> p -} where
   infixr 3 ***
   (***) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `p` b) `k` (c `p` d))
 
@@ -141,7 +141,7 @@ class Symmetric p k where
 -- <https://hackage.haskell.org/package/categories/docs/Control-Category-Monoidal.html>.
 
 
-class (Category k, ObjBin co k) => Comonoidal co k | k -> co where
+class (Category k, ObjBin co k) => Comonoidal co k {- | k -> co -} where
   infixr 2 +++
   (+++) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `co` b) `k` (c `co` d))
 
@@ -193,7 +193,7 @@ type Bicartesian p co k = (Cartesian p k, Cocartesian co k)
 class Bicartesian p p k => Biproduct p k
 
 
-class (Category k, ObjBin e k) => Closed e k | k -> e where
+class (Category k, ObjBin e k) => Closed e k {- | k -> e -} where
   (^^^) :: Obj4 k a b c d => (a `k` b) -> (d `k` c) -> ((c `e` a) `k` (d `e` b))
 
 dom :: (Closed e k, Obj3 k c a d) => (d `k` c) -> ((c `e` a) `k` (d `e` a))
