@@ -18,14 +18,12 @@ instance Category (L s) where
   L g . L f = L (g . f)
 
 instance Monoidal (:*:) (L s) where
-  L f *** L g = L (\ (a :*: b) -> f a :*: g b)
+  L f ### L g = L (\ (a :*: b) -> f a :*: g b)
 
 instance Cartesian (:*:) (L s) where
   exl = L exlF
   exr = L exrF
   dup = L dupF
-
-instance Comonoidal (:*:) (L s) where (+++) = (***)
 
 instance Additive s => Cocartesian (:*:) (L s) where
   inl = L (:*: zeroV)
@@ -35,15 +33,15 @@ instance Additive s => Cocartesian (:*:) (L s) where
 instance Additive s => Biproduct (:*:) (L s)
 
 instance Representable r => MonoidalR r (:.:) (L s) where
-  cross :: Obj2 (L s) a b => r (L s a b) -> L s (r :.: a) (r :.: b)
-  cross fs = L (Comp1 . liftR2 unL fs . unComp1)
+  bifunctor :: Obj2 (L s) a b => r (L s a b) -> L s (r :.: a) (r :.: b)
+  bifunctor fs = L (Comp1 . liftR2 unL fs . unComp1)
 
 #if 0
                    fs :: r (L s a b)
         liftR2 unL fs :: r (a s) -> r (b s)
 Comp1 . liftR2 unL fs . unComp1 :: (r :.: a) s -> (r :.: b) s
 
-cross = L . inNew (liftR2 unL)
+bifunctor = L . inNew (liftR2 unL)
 #endif
 
 instance Representable r => CartesianR r (:.:) (L s) where
@@ -51,9 +49,6 @@ instance Representable r => CartesianR r (:.:) (L s) where
   exs = tabulate (\ i -> L (\ (Comp1 as) -> as `index` i))
   dups :: Obj (L s) a => L s a (r :.: a)
   dups = L (Comp1 . pureRep)
-
-instance Representable r => ComonoidalR r (:.:) (L s) where
-  plus = cross
 
 instance (Additive s, Representable r, Eq (Rep r), Foldable r)
       => CocartesianR r (:.:) (L s) where

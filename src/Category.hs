@@ -3,8 +3,6 @@
 
 -- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
-{-# LANGUAGE AllowAmbiguousTypes #-}   -- See below
-
 -- | Functor category classes
 
 module Category where
@@ -56,13 +54,8 @@ type Obj6 k a b c d e f = C6 (Obj k) a b c d e f
 type ObjBin p k = ((forall a b. Obj2 k a b => Obj k (a `p` b)) :: Constraint)
 
 class (Category k, ObjBin p k) => Monoidal p k {- | k -> p -} where
-  infixr 3 ***
-  (***) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `p` b) `k` (c `p` d))
-
--- The functional dependency requires p to be uniquely determined by k. Might
--- help type inference. Necessitates a "Comonoidal" class with "(+++)", which is
--- perhaps better than giving two Monoidal instances for a single category (eg
--- for (->)).
+  infixr 3 ###
+  (###) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `p` b) `k` (c `p` d))
 
 -- TODO: make p an associated type, and see how the class and instance
 -- definitions look in comparison.
@@ -84,10 +77,10 @@ class (Category k, ObjBin p k) => Monoidal p k {- | k -> p -} where
 -- *products*.
 
 first :: (Monoidal p k, Obj3 k a b c) => (a `k` c) -> ((a `p` b) `k` (c `p` b))
-first f = f *** id
+first f = f ### id
 
 second :: (Monoidal p k, Obj3 k a b d) => (b `k` d) -> ((a `p` b) `k` (a `p` d))
-second g = id *** g
+second g = id ### g
 
 class Monoidal p k => Cartesian p k where
   exl :: Obj2 k a b => (a `p` b) `k` a
@@ -98,7 +91,7 @@ class Monoidal p k => Cartesian p k where
 infixr 3 &&&
 (&&&) :: (Cartesian p k, Obj3 k a c d)
       => (a `k` c) -> (a `k` d) -> (a `k` (c `p` d))
-f &&& g = (f *** g) . dup
+f &&& g = (f ### g) . dup
 
 fork2 :: (Cartesian p k, Obj3 k a c d)
       => (a `k` c) :* (a `k` d) -> (a `k` (c `p` d))
@@ -140,22 +133,7 @@ class Symmetric p k where
 -- Note that Associative is a superclass of Monoidal in
 -- <https://hackage.haskell.org/package/categories/docs/Control-Category-Monoidal.html>.
 
-
-class (Category k, ObjBin co k) => Comonoidal co k {- | k -> co -} where
-  infixr 2 +++
-  (+++) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `co` b) `k` (c `co` d))
-
--- TODO: Explore whether to keep both Monoidal and Comonoidal or have one class
--- with two instances per category, which requires dropping the functional
--- dependencies k -> p and k -> co. (The name "Comonoidal" is already iffy.) If
--- we drop the functional dependencies, revisit uses of UndecidableInstances.
--- Currently Associative and Symmetric do not have Monoidal a superclass and so
--- can be used for both products and coproducts. Questions:
---
--- *  Is type inference manageable without these functional dependencies?
--- *  What to call the operation that unifies (***) and (+++)?
-
-class Comonoidal co k => Cocartesian co k where
+class Monoidal co k => Cocartesian co k where
   inl :: Obj2 k a b => a `k` (a `co` b)
   inr :: Obj2 k a b => b `k` (a `co` b)
   jam :: Obj  k a   => (a `co` a) `k` a
@@ -164,7 +142,7 @@ class Comonoidal co k => Cocartesian co k where
 infixr 2 |||
 (|||) :: (Cocartesian co k, Obj3 k a b c)
       => (a `k` c) -> (b `k` c) -> ((a `co` b) `k` c)
-f ||| g = jam . (f +++ g)
+f ||| g = jam . (f ### g)
 
 join2 :: (Cocartesian co k, Obj3 k a b c)
       => (a `k` c) :* (b `k` c) -> ((a `co` b) `k` c)
@@ -235,7 +213,7 @@ instance Category k => Category (ViaCocartesian p k) where
   type Obj' (ViaCocartesian p k) a = Obj k a
   id = ViaCocartesian id
   ViaCocartesian g . ViaCocartesian f = ViaCocartesian (g . f)
-deriving instance Comonoidal  co k => Comonoidal  co (ViaCocartesian co k)
+deriving instance Monoidal  co k => Monoidal  co (ViaCocartesian co k)
 deriving instance Cocartesian co k => Cocartesian co (ViaCocartesian co k)
 
 instance Cocartesian co k => Associative co (ViaCocartesian co k) where
@@ -257,31 +235,31 @@ type ObjR' r p k = ((forall z. Obj k z => Obj k (p r z)) :: Constraint)
 class    (Functor r, ObjR' r p k) => ObjR r p k
 instance (Functor r, ObjR' r p k) => ObjR r p k
 
-class (Category k, ObjR r p k) => MonoidalR r p k | k r -> p where
-  cross :: Obj2 k a b => r (a `k` b) -> (p r a `k` p r b)
+class (Category k, ObjR r p k) => MonoidalR r p k {- | k r -> p -} where
+  bifunctor :: Obj2 k a b => r (a `k` b) -> (p r a `k` p r b)
 
 class MonoidalR r p k => CartesianR r p k where
   exs  :: Obj k a => r (p r a `k` a)
   dups :: Obj k a => a `k` p r a
 
 fork :: (CartesianR r p k, Obj2 k a c) => r (a `k` c) -> (a `k` p r c)
-fork fs = cross fs . dups
+fork fs = bifunctor fs . dups
 
 unfork :: (CartesianR r p k, Obj2 k a b) => a `k` (p r b) -> r (a `k` b)
 unfork f = (. f) <$> exs
 
 -- Exercise: Prove that fork and unfork form an isomorphism.
 
-class (Category k, ObjR r co k) => ComonoidalR r co k | k r -> co where
-  plus :: Obj2 k a b => r (a `k` b) -> (co r a `k` co r b)
+-- class (Category k, ObjR r co k) => MonoidalR r co k | k r -> co where
+--   plus :: Obj2 k a b => r (a `k` b) -> (co r a `k` co r b)
 
 -- N-ary biproducts
-class ComonoidalR r co k => CocartesianR r co k where
+class MonoidalR r co k => CocartesianR r co k where
   ins  :: Obj k a => r (a `k` co r a)
   jams :: Obj k a => co r a `k` a
 
 join :: (CocartesianR r co k, Obj2 k a b) => r (a `k` b) -> co r a `k` b
-join fs = jams . plus fs
+join fs = jams . bifunctor fs
 
 unjoin :: (CocartesianR r co k, Obj2 k a b) => co r a `k` b -> r (a `k` b)
 unjoin f = (f .) <$> ins
@@ -308,15 +286,15 @@ instance Category (->) where
   (.) = (P..)
 
 instance Monoidal (:*) (->) where
-  (***) = (A.***)
+  (###) = (A.***)
 
 instance Cartesian (:*) (->) where
   exl = fst
   exr = snd
   dup = \ a -> (a,a)
 
-instance Comonoidal (:+) (->) where
-  (+++) = (A.+++)
+instance Monoidal (:+) (->) where
+  (###) = (A.+++)
 
 instance Cocartesian (:+) (->) where
   inl = P.Left
@@ -339,7 +317,7 @@ deriving via (ViaCocartesian (:+) (->)) instance Associative (:+) (->)
 deriving via (ViaCocartesian (:+) (->)) instance Symmetric   (:+) (->)
 
 instance Representable r => MonoidalR r Ap (->) where
-  cross rab (Ap ra) = Ap (liftR2 ($) rab ra)
+  bifunctor rab (Ap ra) = Ap (liftR2 ($) rab ra)
 
 instance Representable r => CartesianR r Ap (->) where
   exs = tabulate (flip index)
@@ -347,8 +325,8 @@ instance Representable r => CartesianR r Ap (->) where
 
 data RepAnd r x = RepAnd (Rep r) x
 
-instance Representable r => ComonoidalR r RepAnd (->) where
-  plus fs (RepAnd i a) = RepAnd i ((fs `index` i) a)
+instance Representable r => MonoidalR r RepAnd (->) where
+  bifunctor fs (RepAnd i a) = RepAnd i ((fs `index` i) a)
 
 instance Representable r => CocartesianR r RepAnd (->) where
   ins = tabulate RepAnd

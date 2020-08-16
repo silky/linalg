@@ -1,5 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-} -- see below
-
 -- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
 -- | Isomorphisms
@@ -51,19 +49,7 @@ instance Symmetric p k => Symmetric p (Iso k) where
 -- Iso k is not cartesian.
 
 instance Monoidal p k => Monoidal p (Iso k) where
-  (f :<-> f') *** (g :<-> g') = (f *** g) :<-> (f' *** g')
-
--- Illegal instance declaration for ‘Monoidal (Iso k) p’
---   The coverage condition fails in class ‘Monoidal’
---     for functional dependency: ‘k -> p’
---   Reason: lhs type ‘Iso k’ does not determine rhs type ‘p’
---   Un-determined variable: p
---   Using UndecidableInstances might help
---
--- TODO: revisit after monkeying with the Monoidal class.
-
-instance Comonoidal co k => Comonoidal co (Iso k) where
-  (f :<-> f') +++ (g :<-> g') = (f +++ g) :<-> (f' +++ g')
+  (f :<-> f') ### (g :<-> g') = (f ### g) :<-> (f' ### g')
 
 #if 0
 instance UnitCat k => UnitCat (Iso k) where
