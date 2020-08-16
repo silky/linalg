@@ -13,7 +13,7 @@ import Category.Isomorphism
 newtype L (s :: *) a b = L { unL :: a s -> b s }
 
 instance Category (L s) where
-  type Obj' (L s) = Representable
+  type Obj' (L s) a = Representable a
   id = L id
   L g . L f = L (g . f)
 

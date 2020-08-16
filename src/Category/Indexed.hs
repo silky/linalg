@@ -34,7 +34,7 @@ instance Obj k (Trie i) => ObjI k i
 -- (Use UndecidableInstances to permit this)
 
 instance Category k => Category (Indexed k) where
-  type Obj' (Indexed k) = ObjI k
+  type Obj' (Indexed k) a = ObjI k a
   id = Indexed id
   Indexed g . Indexed f = Indexed (g . f)
 

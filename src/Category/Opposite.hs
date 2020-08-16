@@ -11,7 +11,7 @@ import CatPrelude
 newtype Op k a b = Op { unOp :: b `k` a }
 
 instance Category k => Category (Op k) where
-  type Obj' (Op k) = Obj k
+  type Obj' (Op k) a = Obj k a
   id = Op id
   Op g . Op f = Op (f . g)
 

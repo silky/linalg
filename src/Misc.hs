@@ -183,6 +183,3 @@ infixr 1 ~>
 {-# INLINE (<~) #-}
 
 -- TODO: Maybe move (<~) and (~>) to Category and generalize from (->)to any category.
-
-class    Unconstrained a
-instance Unconstrained a
