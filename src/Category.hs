@@ -53,7 +53,7 @@ type Obj6 k a b c d e f = C6 (Obj k) a b c d e f
 -- Seee https://github.com/conal/linalg/pull/28#issuecomment-670313952
 type ObjBin p k = ((forall a b. Obj2 k a b => Obj k (a `p` b)) :: Constraint)
 
-class (Category k, ObjBin p k) => Monoidal p k {- | k -> p -} where
+class (Category k, ObjBin p k) => Monoidal p k where
   infixr 3 ###
   (###) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `p` b) `k` (c `p` d))
 
@@ -171,7 +171,7 @@ type Bicartesian p co k = (Cartesian p k, Cocartesian co k)
 class Bicartesian p p k => Biproduct p k
 
 
-class (Category k, ObjBin e k) => Closed e k {- | k -> e -} where
+class (Category k, ObjBin e k) => Closed e k where
   (^^^) :: Obj4 k a b c d => (a `k` b) -> (d `k` c) -> ((c `e` a) `k` (d `e` b))
 
 dom :: (Closed e k, Obj3 k c a d) => (d `k` c) -> ((c `e` a) `k` (d `e` a))
@@ -235,7 +235,7 @@ type ObjR' r p k = ((forall z. Obj k z => Obj k (p r z)) :: Constraint)
 class    (Functor r, ObjR' r p k) => ObjR r p k
 instance (Functor r, ObjR' r p k) => ObjR r p k
 
-class (Category k, ObjR r p k) => MonoidalR r p k {- | k r -> p -} where
+class (Category k, ObjR r p k) => MonoidalR r p k where
   bifunctor :: Obj2 k a b => r (a `k` b) -> (p r a `k` p r b)
 
 class MonoidalR r p k => CartesianR r p k where
@@ -249,9 +249,6 @@ unfork :: (CartesianR r p k, Obj2 k a b) => a `k` (p r b) -> r (a `k` b)
 unfork f = (. f) <$> exs
 
 -- Exercise: Prove that fork and unfork form an isomorphism.
-
--- class (Category k, ObjR r co k) => MonoidalR r co k | k r -> co where
---   plus :: Obj2 k a b => r (a `k` b) -> (co r a `k` co r b)
 
 -- N-ary biproducts
 class MonoidalR r co k => CocartesianR r co k where
