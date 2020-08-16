@@ -36,7 +36,7 @@ type (<->) = Iso (->)
 -------------------------------------------------------------------------------
 
 instance Category k => Category (Iso k) where
-  type Obj' (Iso k) = Obj k
+  type Obj' (Iso k) a = Obj k a
   id = id :<-> id
   (g :<-> g') . (f :<-> f') = (g . f) :<-> (f' . g')
 

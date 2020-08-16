@@ -32,8 +32,8 @@ instance Obj' k a => Obj k a
 -- Use UndecidableSuperClasses to accept this
 
 class Category (k :: u -> u -> *) where
-  type Obj' k :: u -> Constraint
-  type instance Obj' k = Unconstrained
+  type Obj' k (a :: u) :: Constraint
+  type instance Obj' k u = ()
   infixr 9 .
   id :: Obj k a => a `k` a
   (.) :: Obj3 k a b c => (b `k` c) -> (a `k` b) -> (a `k` c)
@@ -197,7 +197,7 @@ class Bicartesian p p k => Biproduct p k
 -- `Associative` and `Symmetric` instances using the `Cartesian` operations.
 newtype ViaCartesian p k a b = ViaCartesian (k a b)
 instance Category k => Category (ViaCartesian p k) where
-  type Obj' (ViaCartesian p k) = Obj k
+  type Obj' (ViaCartesian p k) a = Obj k a
   id = ViaCartesian id
   ViaCartesian g . ViaCartesian f = ViaCartesian (g . f)
 deriving instance Monoidal  p k => Monoidal  p (ViaCartesian p k)
@@ -213,7 +213,7 @@ instance Cartesian p k => Symmetric p (ViaCartesian p k) where
 -- `Associative` and `Symmetric` instances using the `Cocartesian` operations.
 newtype ViaCocartesian co k a b = ViaCocartesian (k a b)
 instance Category k => Category (ViaCocartesian p k) where
-  type Obj' (ViaCocartesian p k) = Obj k
+  type Obj' (ViaCocartesian p k) a = Obj k a
   id = ViaCocartesian id
   ViaCocartesian g . ViaCocartesian f = ViaCocartesian (g . f)
 deriving instance Comonoidal  co k => Comonoidal  co (ViaCocartesian co k)

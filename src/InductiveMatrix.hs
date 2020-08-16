@@ -64,6 +64,6 @@ instance LinearMap L where
 -------------------------------------------------------------------------------
 
 instance Category (L s) where
-  type Obj' (L s) = V
+  type Obj' (L s) a = V a
   id = undefined
   (.) = undefined
