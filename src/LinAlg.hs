@@ -143,12 +143,12 @@ idL = scaleV one
 infixr 9 .@
 (.@) :: (V3 f g h, Semiring s) => L g h s -> L f g s -> L f h s
 Scale a   .@ Scale b   = Scale (a * b)             -- Scale denotation
+(r :|# s) .@ (p :&# q) = (r .@ p) + (s .@ q)       -- biproduct law
 (p :&# q) .@ m         = (p .@ m) :&# (q .@ m)     -- binary product law
 m         .@ (p :|# q) = (m .@ p) :|# (m .@ q)     -- binary coproduct law
-(r :|# s) .@ (p :&# q) = (r .@ p) + (s .@ q)       -- biproduct law
+JoinL ms' .@ ForkL ms  = sum (ms' .^ ms)           -- biproduct law
 ForkL ms' .@ m         = ForkL (fmap (.@ m) ms')   -- n-ary product law
 m'        .@ JoinL ms  = JoinL (fmap (m' .@) ms)   -- n-ary coproduct law
-JoinL ms' .@ ForkL ms  = sum (ms' .^ ms)           -- biproduct law
 
 (.^) :: (V3 f g h, Representable p, Semiring s)
      => p (L g h s) -> p (L f g s) -> p (L f h s)
