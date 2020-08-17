@@ -55,7 +55,7 @@ type ObjBin p k = ((forall a b. Obj2 k a b => Obj k (a `p` b)) :: Constraint)
 
 class (Category k, ObjBin p k) => Monoidal p k where
   infixr 3 ###
-  (###) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> ((a `p` b) `k` (c `p` d))
+  (###) :: Obj4 k a b c d => (a `k` c) -> (b `k` d) -> (a `p` b) `k` (c `p` d)
 
 -- TODO: make p an associated type, and see how the class and instance
 -- definitions look in comparison.
@@ -236,14 +236,15 @@ class    (Functor r, ObjR' r p k) => ObjR r p k
 instance (Functor r, ObjR' r p k) => ObjR r p k
 
 class (Category k, ObjR r p k) => MonoidalR r p k where
-  bifunctor :: Obj2 k a b => r (a `k` b) -> (p r a `k` p r b)
+  -- | n-ary version of '(###)'
+  rmap :: Obj2 k a b => r (a `k` b) -> (p r a `k` p r b)
 
 class MonoidalR r p k => CartesianR r p k where
   exs  :: Obj k a => r (p r a `k` a)
   dups :: Obj k a => a `k` p r a
 
 fork :: (CartesianR r p k, Obj2 k a c) => r (a `k` c) -> (a `k` p r c)
-fork fs = bifunctor fs . dups
+fork fs = rmap fs . dups
 
 unfork :: (CartesianR r p k, Obj2 k a b) => a `k` (p r b) -> r (a `k` b)
 unfork f = (. f) <$> exs
@@ -256,7 +257,7 @@ class MonoidalR r co k => CocartesianR r co k where
   jams :: Obj k a => co r a `k` a
 
 join :: (CocartesianR r co k, Obj2 k a b) => r (a `k` b) -> co r a `k` b
-join fs = jams . bifunctor fs
+join fs = jams . rmap fs
 
 unjoin :: (CocartesianR r co k, Obj2 k a b) => co r a `k` b -> r (a `k` b)
 unjoin f = (f .) <$> ins
@@ -314,7 +315,7 @@ deriving via (ViaCocartesian (:+) (->)) instance Associative (:+) (->)
 deriving via (ViaCocartesian (:+) (->)) instance Symmetric   (:+) (->)
 
 instance Representable r => MonoidalR r Ap (->) where
-  bifunctor rab (Ap ra) = Ap (liftR2 ($) rab ra)
+  rmap rab (Ap ra) = Ap (liftR2 ($) rab ra)
 
 instance Representable r => CartesianR r Ap (->) where
   exs = tabulate (flip index)
@@ -323,7 +324,7 @@ instance Representable r => CartesianR r Ap (->) where
 data RepAnd r x = RepAnd (Rep r) x
 
 instance Representable r => MonoidalR r RepAnd (->) where
-  bifunctor fs (RepAnd i a) = RepAnd i ((fs `index` i) a)
+  rmap fs (RepAnd i a) = RepAnd i ((fs `index` i) a)
 
 instance Representable r => CocartesianR r RepAnd (->) where
   ins = tabulate RepAnd

@@ -33,15 +33,15 @@ instance Additive s => Cocartesian (:*:) (L s) where
 instance Additive s => Biproduct (:*:) (L s)
 
 instance Representable r => MonoidalR r (:.:) (L s) where
-  bifunctor :: Obj2 (L s) a b => r (L s a b) -> L s (r :.: a) (r :.: b)
-  bifunctor fs = L (Comp1 . liftR2 unL fs . unComp1)
+  rmap :: Obj2 (L s) a b => r (L s a b) -> L s (r :.: a) (r :.: b)
+  rmap fs = L (Comp1 . liftR2 unL fs . unComp1)
 
 #if 0
                    fs :: r (L s a b)
         liftR2 unL fs :: r (a s) -> r (b s)
 Comp1 . liftR2 unL fs . unComp1 :: (r :.: a) s -> (r :.: b) s
 
-bifunctor = L . inNew (liftR2 unL)
+rmap = L . inNew (liftR2 unL)
 #endif
 
 instance Representable r => CartesianR r (:.:) (L s) where

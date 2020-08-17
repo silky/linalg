@@ -39,7 +39,7 @@ instance Closed e k => Closed e (Op k) where
   Op f ^^^ Op g = Op (f ^^^ g)
 
 instance MonoidalR r p k => MonoidalR r p (Op k) where
-  bifunctor (fmap unOp -> fs) = Op (bifunctor fs)
+  rmap (fmap unOp -> fs) = Op (rmap fs)
 
 instance CocartesianR r p k => CartesianR r p (Op k) where
   exs  = Op <$> ins
