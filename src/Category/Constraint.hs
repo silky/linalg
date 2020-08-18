@@ -24,7 +24,7 @@ instance (p,q) => p && q
 -- Use UndecidableSuperClasses to accept this
 
 instance Monoidal (&&) (:-) where
-  p *** q = Sub (Dict \\ p \\ q)
+  p ### q = Sub (Dict \\ p \\ q)
 
 instance Associative (&&) (:-) where
   lassoc = Sub Dict

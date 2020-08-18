@@ -1,6 +1,7 @@
--- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 {-# LANGUAGE UndecidableSuperClasses #-} -- see below
 {-# LANGUAGE UndecidableInstances #-} -- see below
+
+-- {-# OPTIONS_GHC -Wno-unused-imports #-} -- TEMP
 
 -- | Logarithms (Representable indices) as objects
 
@@ -41,7 +42,7 @@ instance Category k => Category (Indexed k) where
 -- The logarithm of a product is the sum of the logarithms.
 
 instance Monoidal (:*:) k => Monoidal (:+) (Indexed k) where
-  Indexed f *** Indexed g = Indexed (f *** g)
+  Indexed f ### Indexed g = Indexed (f ### g)
 
 instance Associative (:*:) k => Associative (:+) (Indexed k) where
   lassoc = Indexed lassoc
@@ -54,9 +55,6 @@ instance Cartesian (:*:) k => Cartesian (:+) (Indexed k) where
   exl = Indexed exl
   exr = Indexed exr
   dup = Indexed dup
-
-instance Comonoidal (:*:) k => Comonoidal (:+) (Indexed k) where
-  Indexed f +++ Indexed g = Indexed (f +++ g)
 
 instance Cocartesian (:*:) k => Cocartesian (:+) (Indexed k) where
   inl = Indexed inl
